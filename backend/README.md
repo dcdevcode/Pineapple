@@ -2,7 +2,7 @@
 
 Python backend for the Pineapple iOS forensic analysis tool.
 
-- `pineapple.devices` - async USB device access (`list_devices`, `get_device_info`).
+- `pineapple.devices` - async USB device access (`connected_devices`, `get_device_info`).
 - `pineapple.api` - `Api`, the sync bridge exposed to the frontend as `window.pywebview.api`.
 - `pineapple.app` - pywebview host window for the desktop UI.
 - `pineapple.cli` - the `pineapple` console script.

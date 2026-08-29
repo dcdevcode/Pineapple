@@ -5,6 +5,11 @@
     <app-phone-outline class="device__phone" />
     <p class="device__hint">Connect a device to get started</p>
   </section>
+} @else if (s.status === 'multiple') {
+  <section class="device device--empty">
+    <app-phone-outline class="device__phone" />
+    <p class="device__hint">Multiple devices connected — disconnect all but one.</p>
+  </section>
 } @else {
   <section class="device device--connected">
     <h2 class="device__name">

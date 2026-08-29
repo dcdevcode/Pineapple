@@ -29,7 +29,7 @@ inspects Apple devices connected over USB.
 | Path | Purpose |
 | --- | --- |
 | `backend/pyproject.toml` | uv project: deps, `pineapple` and `pineapple-gui` entry points. |
-| `backend/src/pineapple/devices.py` | Async USB device access (`list_devices`, `get_device_info`, `INFO_FIELDS`). |
+| `backend/src/pineapple/devices.py` | Async USB device access (`connected_devices`, `get_device_info`, `INFO_FIELDS`). |
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
@@ -80,19 +80,22 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 ## `backend/src/pineapple` notes
 
 - `devices.py`: `pymobiledevice3` v11 is **async**, and so is this module — no
-  sync wrappers here. `list_devices()` talks only to the local usbmuxd daemon
-  (no device contact — safe to poll) and returns `[]` when it is unavailable;
-  `get_device_info()` opens a lockdown connection (device must be paired —
-  "Trust this computer") and raises when the device is unpaired or unreachable.
+  sync wrappers here. `connected_devices()` talks only to the local usbmuxd
+  daemon (no device contact — safe to poll) and returns `[]` when it is
+  unavailable; `get_device_info()` opens a lockdown connection (device must be
+  paired — "Trust this computer") and raises when the device is unpaired or
+  unreachable.
 - `api.py`: the **only** sync/async boundary — each method is `asyncio.run()`
-  over `devices`, called on a pywebview worker thread. `get_device_info()` wraps
-  the result in an `{"ok": True, "info": ...}` / `{"ok": False, "error": ...}`
-  envelope so the frontend can tell "needs trust" from "ready".
+  over `devices`, called on a pywebview worker thread. `connected_device()`
+  applies the single-device policy: `{"status": "none" | "one" | "multiple"}`
+  (several devices are never auto-picked — wrong-device risk). `get_device_info()`
+  wraps the result in an `{"ok": True, "info": ...}` / `{"ok": False, "error":
+  ...}` envelope so the frontend can tell "needs trust" from "ready".
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.
-- frontend `DeviceService`: polls `window.pywebview.api.list_devices()` every 2s,
-  fetches full info once per device (retrying while `unpaired`), exposes a
+- frontend `DeviceService`: polls `window.pywebview.api.connected_device()` every
+  2s, fetches full info once per device (retrying while `unpaired`), exposes a
   `DeviceState` signal. Idle no-op when `window.pywebview` is absent (plain
   browser).
 

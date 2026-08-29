@@ -1,8 +1,8 @@
-import type { RawDevice, DeviceInfoResult } from './device.models';
+import type { DevicePresence, DeviceInfoResult } from './device.models';
 
 /** The Python `Api` object, exposed by pywebview as `window.pywebview.api`. */
 export interface PineappleApi {
-  list_devices(): Promise<RawDevice[]>;
+  connected_device(): Promise<DevicePresence>;
   get_device_info(udid: string): Promise<DeviceInfoResult>;
 }
 

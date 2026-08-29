@@ -6,7 +6,7 @@ from pineapple import devices
 
 
 async def _run() -> None:
-    connected = await devices.list_devices()
+    connected = await devices.connected_devices()
     if not connected:
         print("No USB devices detected.")
         return

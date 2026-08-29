@@ -14,13 +14,13 @@ const SAMPLE_INFO: DeviceInfo = {
 
 function makeApi() {
   return {
-    list_devices: vi.fn().mockResolvedValue([]),
+    connected_device: vi.fn().mockResolvedValue({ status: 'none' }),
     get_device_info: vi.fn().mockResolvedValue({ ok: true, info: SAMPLE_INFO }),
   };
 }
 
-function connected(udid = 'A') {
-  return [{ Udid: udid, ConnectionType: 'USB' }];
+function present(udid = 'A') {
+  return { status: 'one', device: { Udid: udid, ConnectionType: 'USB' } };
 }
 
 describe('DeviceService', () => {
@@ -49,9 +49,20 @@ describe('DeviceService', () => {
     expect(service.state().status).toBe('idle');
   });
 
+  it('shows the "multiple" state when several devices are attached', async () => {
+    const api = makeApi();
+    api.connected_device.mockResolvedValue({ status: 'multiple' });
+    window.pywebview = { api };
+
+    await service.refresh();
+
+    expect(service.state()).toEqual({ status: 'multiple' });
+    expect(api.get_device_info).not.toHaveBeenCalled();
+  });
+
   it('reaches "ready" with the device name and info', async () => {
     const api = makeApi();
-    api.list_devices.mockResolvedValue(connected());
+    api.connected_device.mockResolvedValue(present());
     window.pywebview = { api };
 
     await service.refresh();
@@ -66,7 +77,7 @@ describe('DeviceService', () => {
 
   it('fetches the device info only once per device', async () => {
     const api = makeApi();
-    api.list_devices.mockResolvedValue(connected());
+    api.connected_device.mockResolvedValue(present());
     window.pywebview = { api };
 
     await service.refresh();
@@ -78,7 +89,7 @@ describe('DeviceService', () => {
 
   it('retries while unpaired and flips to ready once trusted', async () => {
     const api = makeApi();
-    api.list_devices.mockResolvedValue(connected());
+    api.connected_device.mockResolvedValue(present());
     api.get_device_info.mockResolvedValueOnce({ ok: false, error: 'Not trusted' });
     window.pywebview = { api };
 
@@ -92,15 +103,15 @@ describe('DeviceService', () => {
 
   it('returns to idle on disconnect and re-fetches on reconnect', async () => {
     const api = makeApi();
-    api.list_devices.mockResolvedValue(connected());
+    api.connected_device.mockResolvedValue(present());
     window.pywebview = { api };
     await service.refresh();
 
-    api.list_devices.mockResolvedValue([]);
+    api.connected_device.mockResolvedValue({ status: 'none' });
     await service.refresh();
     expect(service.state().status).toBe('idle');
 
-    api.list_devices.mockResolvedValue(connected());
+    api.connected_device.mockResolvedValue(present());
     await service.refresh();
     expect(service.state().status).toBe('ready');
     expect(api.get_device_info).toHaveBeenCalledTimes(2);
@@ -108,11 +119,11 @@ describe('DeviceService', () => {
 
   it('follows a device swap', async () => {
     const api = makeApi();
-    api.list_devices.mockResolvedValue(connected('A'));
+    api.connected_device.mockResolvedValue(present('A'));
     window.pywebview = { api };
     await service.refresh();
 
-    api.list_devices.mockResolvedValue(connected('B'));
+    api.connected_device.mockResolvedValue(present('B'));
     await service.refresh();
 
     expect(api.get_device_info).toHaveBeenLastCalledWith('B');
@@ -121,13 +132,13 @@ describe('DeviceService', () => {
 
   it('ignores a stale info result that resolves after a disconnect', async () => {
     const api = makeApi();
-    api.list_devices.mockResolvedValue(connected());
+    api.connected_device.mockResolvedValue(present());
     let resolveInfo!: (value: unknown) => void;
     api.get_device_info.mockReturnValue(new Promise((resolve) => (resolveInfo = resolve)));
     window.pywebview = { api };
 
     const pending = service.refresh();
-    api.list_devices.mockResolvedValue([]);
+    api.connected_device.mockResolvedValue({ status: 'none' });
     await service.refresh();
 
     resolveInfo({ ok: true, info: SAMPLE_INFO });
@@ -136,9 +147,9 @@ describe('DeviceService', () => {
     expect(service.state().status).toBe('idle');
   });
 
-  it('treats a list_devices rejection as no device', async () => {
+  it('treats a connected_device rejection as no device', async () => {
     const api = makeApi();
-    api.list_devices.mockRejectedValue(new Error('bridge down'));
+    api.connected_device.mockRejectedValue(new Error('bridge down'));
     window.pywebview = { api };
 
     await service.refresh();
@@ -153,11 +164,11 @@ describe('DeviceService', () => {
 
     service.start();
     await vi.advanceTimersByTimeAsync(POLL_INTERVAL_WINDOW);
-    const callsBeforeStop = api.list_devices.mock.calls.length;
+    const callsBeforeStop = api.connected_device.mock.calls.length;
 
     service.stop();
     await vi.advanceTimersByTimeAsync(POLL_INTERVAL_WINDOW * 3);
 
-    expect(api.list_devices.mock.calls.length).toBe(callsBeforeStop);
+    expect(api.connected_device.mock.calls.length).toBe(callsBeforeStop);
   });
 });

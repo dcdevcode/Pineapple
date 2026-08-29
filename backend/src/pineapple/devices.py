@@ -27,7 +27,7 @@ INFO_FIELDS = [
 ]
 
 
-async def list_devices() -> list[dict[str, str]]:
+async def connected_devices() -> list[dict[str, str]]:
     """Return the USB devices known to the local usbmuxd daemon.
 
     Does not contact the devices themselves, so it is cheap enough to poll.
@@ -35,13 +35,12 @@ async def list_devices() -> list[dict[str, str]]:
     connected or usbmuxd is unavailable.
     """
     try:
-        devices = await usbmux.list_devices()
+        attached = await usbmux.select_devices_by_connection_type("USB")
     except ConnectionFailedToUsbmuxdError:
         return []
     return [
         {"Udid": device.serial, "ConnectionType": device.connection_type}
-        for device in devices
-        if device.is_usb
+        for device in attached
     ]
 
 

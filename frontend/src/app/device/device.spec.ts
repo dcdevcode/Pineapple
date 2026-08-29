@@ -38,6 +38,13 @@ describe('Device', () => {
     expect(el.querySelector('button')).toBeNull();
   });
 
+  it('asks to disconnect all but one when several devices are attached', async () => {
+    state.set({ status: 'multiple' });
+    const el = await render();
+    expect(el.querySelector('.device__hint')?.textContent).toContain('disconnect all but one');
+    expect(el.querySelector('button')).toBeNull();
+  });
+
   it('shows a disabled button while connecting', async () => {
     state.set({ status: 'connecting', udid: 'A' });
     const el = await render();

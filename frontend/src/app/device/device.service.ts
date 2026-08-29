@@ -1,15 +1,15 @@
 import { Injectable, signal } from '@angular/core';
-import type { DeviceInfoResult, DeviceState, RawDevice } from './device.models';
+import type { DeviceInfoResult, DevicePresence, DeviceState } from './device.models';
 
 const POLL_INTERVAL_MS = 2000;
 
 /**
  * Watches for a USB device via the pywebview bridge and exposes its state.
  *
- * Every {@link POLL_INTERVAL_MS} it asks the backend which devices are plugged
- * in (a cheap, daemon-only call). The full device info is fetched only once per
- * device — except while the device is `unpaired`, where every poll retries so
- * granting "Trust this computer" is picked up without replugging.
+ * Every {@link POLL_INTERVAL_MS} it asks the backend whether a device is
+ * attached (a cheap, daemon-only call). The full device info is fetched only
+ * once per device — except while the device is `unpaired`, where every poll
+ * retries so granting "Trust this computer" is picked up without replugging.
  *
  * When `window.pywebview` is absent (the app running in a plain browser via
  * `pnpm start`) the service stays idle and never polls.
@@ -68,23 +68,19 @@ export class DeviceService {
     const api = window.pywebview?.api;
     if (!api) return;
 
-    let devices: RawDevice[] = [];
+    let presence: DevicePresence;
     try {
-      devices = await api.list_devices();
+      presence = await api.connected_device();
     } catch {
-      devices = [];
+      presence = { status: 'none' };
     }
-    const device = devices[0] ?? null;
 
-    if (!device) {
-      if (this.currentUdid !== null) {
-        this.currentUdid = null;
-        this.infoRequestId++;
-        this._state.set({ status: 'idle' });
-      }
+    if (presence.status !== 'one') {
+      this.showDeviceless(presence.status === 'multiple' ? 'multiple' : 'idle');
       return;
     }
 
+    const device = presence.device;
     const isNewDevice = device.Udid !== this.currentUdid;
     const retryingUnpaired = this._state().status === 'unpaired';
     if (!isNewDevice && !retryingUnpaired) return;
@@ -114,5 +110,16 @@ export class DeviceService {
 
     const name = String(result.info['DeviceName'] ?? 'Apple device');
     this._state.set({ status: 'ready', udid: device.Udid, name, info: result.info });
+  }
+
+  /** Move to a state with no single device, cancelling any in-flight fetch. */
+  private showDeviceless(status: 'idle' | 'multiple'): void {
+    if (this.currentUdid !== null) {
+      this.currentUdid = null;
+      this.infoRequestId++;
+    }
+    if (this._state().status !== status) {
+      this._state.set({ status });
+    }
   }
 }

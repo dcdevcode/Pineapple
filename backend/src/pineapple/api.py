@@ -13,8 +13,19 @@ from pineapple import devices
 
 
 class Api:
-    def list_devices(self) -> list[dict[str, str]]:
-        return asyncio.run(devices.list_devices())
+    def connected_device(self) -> dict[str, Any]:
+        """The single-device view the UI needs: ``{"status": "none"}``,
+        ``{"status": "one", "device": {...}}``, or ``{"status": "multiple"}``.
+
+        Several devices are reported as ``multiple`` rather than picking one --
+        for forensics, guessing which device to act on is not acceptable.
+        """
+        attached = asyncio.run(devices.connected_devices())
+        if not attached:
+            return {"status": "none"}
+        if len(attached) > 1:
+            return {"status": "multiple"}
+        return {"status": "one", "device": attached[0]}
 
     def get_device_info(self, udid: str) -> dict[str, Any]:
         """``{"ok": True, "info": {...}}``, or ``{"ok": False, "error": ...}``
