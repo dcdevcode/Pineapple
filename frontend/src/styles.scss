@@ -1,6 +1,4 @@
-// Angular Material theme (Material Design 3).
-// Dark color scheme, red used strictly as an accent (tab indicator, focus rings,
-// future primary actions) - never as large fills or gradients.
+// Dark Material Design 3 theme. Red is an accent only (see CLAUDE.md design system).
 @use '@angular/material' as mat;
 
 html {
@@ -19,8 +17,7 @@ html {
     )
   );
 
-  // Application surface tokens. Material dark spec: not pure black, no gradient.
-  // Elevation is conveyed with Material's own overlays, not custom shadows/glow.
+  // Surface tokens (not pure black; depth comes from Material elevation).
   --app-bg: #121212;
   --app-surface: #1e1e1e;
   --app-border: rgba(255, 255, 255, 0.12);
@@ -39,4 +36,9 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
+}
+
+// The tab shell fills the window; let the active tab panel take the remaining height.
+app-root .mat-mdc-tab-body-wrapper {
+  flex: 1;
 }

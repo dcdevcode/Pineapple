@@ -5,4 +5,4 @@ import { Component } from '@angular/core';
   templateUrl: './device.html',
   styleUrl: './device.scss',
 })
-export class DeviceComponent {}
+export class Device {}

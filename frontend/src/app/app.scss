@@ -7,9 +7,4 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-
-  // Tab bar sits at the top; the panel body fills the remaining height.
-  ::ng-deep .mat-mdc-tab-body-wrapper {
-    flex: 1;
-  }
 }

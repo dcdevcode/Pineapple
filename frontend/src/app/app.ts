@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
 import { MatTabsModule } from '@angular/material/tabs';
-import { DeviceComponent } from './device/device';
-import { AnalysisComponent } from './analysis/analysis';
+import { Device } from './device/device';
+import { Analysis } from './analysis/analysis';
 
 @Component({
   selector: 'app-root',
-  imports: [MatTabsModule, DeviceComponent, AnalysisComponent],
+  imports: [MatTabsModule, Device, Analysis],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
