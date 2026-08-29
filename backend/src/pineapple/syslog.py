@@ -27,11 +27,13 @@ TEARDOWN_TIMEOUT = 5.0
 
 
 async def _drain(task: asyncio.Task[Any]) -> None:
-    """Wait for a cancelled task to finish its cleanup, swallowing the outcome."""
-    try:
-        await asyncio.wait_for(asyncio.shield(task), TEARDOWN_TIMEOUT)
-    except BaseException:
-        pass
+    """Wait for a cancelled reader task to finish its cleanup.
+
+    A slow or failing teardown must not block :meth:`SyslogStream.stop`, so this
+    waits at most ``TEARDOWN_TIMEOUT`` and never looks at the task's outcome.
+    ``asyncio.wait`` neither re-cancels the task nor propagates its exception.
+    """
+    await asyncio.wait({task}, timeout=TEARDOWN_TIMEOUT)
 
 
 @dataclass(frozen=True)

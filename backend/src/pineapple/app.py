@@ -29,7 +29,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--dev",
         action="store_true",
-        help=f"Load the Angular dev server ({DEV_URL}) instead of the production build.",
+        help=f"Load the Angular dev server ({DEV_URL}) instead of the build.",
     )
     return parser.parse_args(argv)
 
@@ -41,9 +41,9 @@ def _resolve_url(dev: bool) -> str:
     index = FRONTEND_DIST / "index.html"
     if not index.is_file():
         sys.exit(
-            "Frontend build not found at "
-            f"{index}\nRun `pnpm install && pnpm run build` in the frontend/ directory first, "
-            "or start `pnpm start` there and launch with `--dev`."
+            f"Frontend build not found at {index}\n"
+            "Run `pnpm install && pnpm run build` in the frontend/ directory "
+            "first, or start `pnpm start` there and launch with `--dev`."
         )
     return str(index)
 

@@ -72,8 +72,8 @@ class Api:
     def save_syslog(self, content: str) -> dict[str, Any]:
         """Write captured log text to a file the user picks.
 
-        ``{"ok": True, "path": ...}``, or ``{"ok": False}`` when the save
-        dialog is cancelled.
+        ``{"ok": True, "path": ...}``, ``{"ok": False}`` when the save dialog is
+        cancelled, or ``{"ok": False, "error": ...}`` when the write fails.
         """
         window = webview.windows[0]
         result = window.create_file_dialog(
@@ -82,5 +82,8 @@ class Api:
         if not result:
             return {"ok": False}
         path = Path(result if isinstance(result, str) else result[0])
-        path.write_text(content, encoding="utf-8")
+        try:
+            path.write_text(content, encoding="utf-8")
+        except OSError as error:
+            return {"ok": False, "error": str(error)}
         return {"ok": True, "path": str(path)}
