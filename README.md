@@ -46,4 +46,4 @@ cd backend && uv run pineapple-gui --dev   # terminal 2: window against the dev 
 
 ## Development
 
-Work happens on the `Dev` branch. See `CLAUDE.md` for the design system and conventions.
+Work happens on the `development` branch. See `CLAUDE.md` for the design system and conventions.

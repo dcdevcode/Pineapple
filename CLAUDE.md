@@ -101,7 +101,7 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 
 ## Git workflow
 
-- Work happens on the **`Dev`** branch. `main` holds the baseline.
+- Work happens on the **`development`** branch. `main` holds the baseline.
 - Commit every logical step. Commit messages in English.
 - Push / open PRs only when the user asks.
 
