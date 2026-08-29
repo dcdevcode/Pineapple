@@ -29,8 +29,9 @@ inspects Apple devices connected over USB.
 | Path | Purpose |
 | --- | --- |
 | `backend/pyproject.toml` | uv project: deps, `pineapple` and `pineapple-gui` entry points. |
-| `backend/src/pineapple/main.py` | USB device helpers (`list_devices`, `detect_devices`, `get_device_info`). |
-| `backend/src/pineapple/api.py` | `Api` class exposed to the frontend as `window.pywebview.api`. |
+| `backend/src/pineapple/devices.py` | Async USB device access (`list_devices`, `get_device_info`, `INFO_FIELDS`). |
+| `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices`, bound to `window.pywebview.api`. |
+| `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
 | `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
@@ -43,7 +44,7 @@ inspects Apple devices connected over USB.
 # Backend
 cd backend
 uv sync
-uv run python src/pineapple/main.py        # device detection helpers
+uv run pineapple                           # print connected devices + info
 uv run pineapple-gui                        # desktop window, serves frontend/dist
 uv run pineapple-gui --dev                  # desktop window against the Angular dev server
 
@@ -78,17 +79,15 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 
 ## `backend/src/pineapple` notes
 
-- `main.py`: `pymobiledevice3` v11 is **async**; the public helpers are
-  **synchronous** wrappers around private coroutines (`_list_devices`,
-  `_detect_devices`, `_get_device_info`). `list_devices()` talks only to the
-  local usbmuxd daemon (no device contact — safe to poll); `detect_devices()`
-  and `get_device_info()` open a lockdown connection. All return `[]` / raise
-  when usbmuxd is unavailable. Full info needs the device paired ("Trust this
-  computer"). Always close lockdown connections.
-- `api.py`: `Api.get_device_info()` wraps `main.get_device_info()` in an
-  `{"ok": True, "info": ...}` / `{"ok": False, "error": ...}` envelope so the
-  frontend can tell "needs trust" from "ready". `Api.list_devices()` passes
-  through. Each method runs on a pywebview worker thread.
+- `devices.py`: `pymobiledevice3` v11 is **async**, and so is this module — no
+  sync wrappers here. `list_devices()` talks only to the local usbmuxd daemon
+  (no device contact — safe to poll) and returns `[]` when it is unavailable;
+  `get_device_info()` opens a lockdown connection (device must be paired —
+  "Trust this computer") and raises when the device is unpaired or unreachable.
+- `api.py`: the **only** sync/async boundary — each method is `asyncio.run()`
+  over `devices`, called on a pywebview worker thread. `get_device_info()` wraps
+  the result in an `{"ok": True, "info": ...}` / `{"ok": False, "error": ...}`
+  envelope so the frontend can tell "needs trust" from "ready".
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.
