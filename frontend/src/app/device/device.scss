@@ -97,7 +97,10 @@
   overflow-wrap: anywhere;
 }
 
-.device__action {
+.device__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   align-self: start;
 }
 

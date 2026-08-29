@@ -1,0 +1,65 @@
+<div class="syslog">
+  <header class="syslog__bar">
+    <h2 class="syslog__title">Syslog — {{ data.deviceName }}</h2>
+
+    <div class="syslog__controls">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="syslog__field">
+        <mat-label>Filter text</mat-label>
+        <input matInput [ngModel]="textFilter()" (ngModelChange)="textFilter.set($event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="syslog__field">
+        <mat-label>Process</mat-label>
+        <mat-select [ngModel]="processFilter()" (ngModelChange)="processFilter.set($event)">
+          <mat-option value="">All processes</mat-option>
+          @for (process of processes(); track process) {
+            <mat-option [value]="process">{{ process }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button matButton type="button" (click)="togglePause()" [disabled]="!running()">
+        {{ paused() ? 'Resume' : 'Pause' }}
+      </button>
+      <button matButton type="button" (click)="clear()">Clear</button>
+      <button matButton type="button" (click)="export()" [disabled]="!filteredLines().length">
+        Export
+      </button>
+      <button matButton type="button" (click)="close()">Close</button>
+    </div>
+  </header>
+
+  <p class="syslog__status">
+    @if (error()) {
+      <span class="syslog__status--error">{{ error() }}</span>
+    } @else if (!running()) {
+      Stream stopped.
+    } @else if (paused()) {
+      Paused — new lines are buffered on the device.
+    } @else {
+      Streaming.
+    }
+    <span class="syslog__count">
+      {{ filteredLines().length }} / {{ allLines().length }} lines
+      @if (dropped()) {
+        · {{ dropped() }} dropped
+      }
+    </span>
+  </p>
+
+  <cdk-virtual-scroll-viewport itemSize="20" class="syslog__viewport">
+    <div *cdkVirtualFor="let line of filteredLines()" class="syslog__line">
+      <span class="syslog__time">{{ formatTime(line.timestamp) }}</span>
+      <span class="syslog__proc">{{ line.process }}[{{ line.pid }}]</span>
+      <span class="syslog__level" [class.syslog__level--severe]="isSevere(line.level)">
+        {{ line.level }}
+      </span>
+      <span class="syslog__msg">
+        @if (line.label) {
+          <span class="syslog__label">[{{ line.label }}]</span>
+        }
+        {{ line.message }}
+      </span>
+    </div>
+  </cdk-virtual-scroll-viewport>
+</div>

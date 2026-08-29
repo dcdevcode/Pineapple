@@ -43,14 +43,14 @@
         </dl>
       }
 
-      <button
-        matButton="filled"
-        class="device__action"
-        type="button"
-        [disabled]="s.status !== 'ready'"
-      >
-        Create Pineapple Logical Image
-      </button>
+      <div class="device__actions">
+        <button matButton="filled" type="button" [disabled]="s.status !== 'ready'">
+          Create Pineapple Logical Image
+        </button>
+        <button matButton type="button" [disabled]="s.status !== 'ready'" (click)="openSyslog()">
+          Real-time Syslog Viewer
+        </button>
+      </div>
     </div>
   </section>
 }

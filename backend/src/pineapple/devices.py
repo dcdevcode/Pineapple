@@ -44,6 +44,16 @@ async def connected_devices() -> list[dict[str, str]]:
     ]
 
 
+async def single_device_udid() -> str | None:
+    """UDID of the one attached device, or ``None`` when zero or several are.
+
+    Centralises the "never auto-pick when several are connected" policy for
+    features that act on a single device.
+    """
+    attached = await connected_devices()
+    return attached[0]["Udid"] if len(attached) == 1 else None
+
+
 async def get_device_info(udid: str) -> dict[str, Any]:
     """Return the ``INFO_FIELDS`` values for one device.
 

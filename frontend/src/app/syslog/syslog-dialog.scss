@@ -1,0 +1,108 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.syslog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--app-surface);
+}
+
+.syslog__bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.syslog__title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  color: var(--app-text);
+}
+
+.syslog__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.syslog__field {
+  width: 200px;
+}
+
+.syslog__status {
+  margin: 0 0 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+}
+
+.syslog__status--error {
+  color: var(--mat-sys-error);
+}
+
+.syslog__count {
+  white-space: nowrap;
+}
+
+.syslog__viewport {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  background: var(--app-bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.syslog__line {
+  display: flex;
+  gap: 12px;
+  padding: 0 12px;
+  height: 20px;
+  align-items: center;
+  white-space: nowrap;
+  color: var(--app-text);
+}
+
+.syslog__time {
+  color: var(--app-text-muted);
+  flex: none;
+}
+
+.syslog__proc {
+  color: var(--app-text-muted);
+  flex: none;
+  min-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.syslog__level {
+  flex: none;
+  width: 56px;
+  color: var(--app-text-muted);
+}
+
+.syslog__level--severe {
+  color: var(--mat-sys-error);
+}
+
+.syslog__msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.syslog__label {
+  color: var(--app-text-muted);
+}

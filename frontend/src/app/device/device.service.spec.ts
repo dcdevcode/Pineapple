@@ -1,6 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { DeviceService } from './device.service';
 import type { DeviceInfo } from './device.models';
+import type { PineappleApi } from './pywebview';
+
+/** Install a partial bridge for the test (real one has more methods). */
+function useBridge(api: Partial<PineappleApi>): void {
+  window.pywebview = { api: api as PineappleApi };
+}
 
 /** A little more than one poll interval, for fake-timer advancement. */
 const POLL_INTERVAL_WINDOW = 2500;
@@ -44,7 +50,7 @@ describe('DeviceService', () => {
   });
 
   it('stays idle when no device is connected', async () => {
-    window.pywebview = { api: makeApi() };
+    useBridge(makeApi());
     await service.refresh();
     expect(service.state().status).toBe('idle');
   });
@@ -52,7 +58,7 @@ describe('DeviceService', () => {
   it('shows the "multiple" state when several devices are attached', async () => {
     const api = makeApi();
     api.connected_device.mockResolvedValue({ status: 'multiple' });
-    window.pywebview = { api };
+    useBridge(api);
 
     await service.refresh();
 
@@ -63,7 +69,7 @@ describe('DeviceService', () => {
   it('reaches "ready" with the device name and info', async () => {
     const api = makeApi();
     api.connected_device.mockResolvedValue(present());
-    window.pywebview = { api };
+    useBridge(api);
 
     await service.refresh();
 
@@ -78,7 +84,7 @@ describe('DeviceService', () => {
   it('fetches the device info only once per device', async () => {
     const api = makeApi();
     api.connected_device.mockResolvedValue(present());
-    window.pywebview = { api };
+    useBridge(api);
 
     await service.refresh();
     await service.refresh();
@@ -91,7 +97,7 @@ describe('DeviceService', () => {
     const api = makeApi();
     api.connected_device.mockResolvedValue(present());
     api.get_device_info.mockResolvedValueOnce({ ok: false, error: 'Not trusted' });
-    window.pywebview = { api };
+    useBridge(api);
 
     await service.refresh();
     expect(service.state()).toMatchObject({ status: 'unpaired', error: 'Not trusted' });
@@ -104,7 +110,7 @@ describe('DeviceService', () => {
   it('returns to idle on disconnect and re-fetches on reconnect', async () => {
     const api = makeApi();
     api.connected_device.mockResolvedValue(present());
-    window.pywebview = { api };
+    useBridge(api);
     await service.refresh();
 
     api.connected_device.mockResolvedValue({ status: 'none' });
@@ -120,7 +126,7 @@ describe('DeviceService', () => {
   it('follows a device swap', async () => {
     const api = makeApi();
     api.connected_device.mockResolvedValue(present('A'));
-    window.pywebview = { api };
+    useBridge(api);
     await service.refresh();
 
     api.connected_device.mockResolvedValue(present('B'));
@@ -135,7 +141,7 @@ describe('DeviceService', () => {
     api.connected_device.mockResolvedValue(present());
     let resolveInfo!: (value: unknown) => void;
     api.get_device_info.mockReturnValue(new Promise((resolve) => (resolveInfo = resolve)));
-    window.pywebview = { api };
+    useBridge(api);
 
     const pending = service.refresh();
     api.connected_device.mockResolvedValue({ status: 'none' });
@@ -150,7 +156,7 @@ describe('DeviceService', () => {
   it('treats a connected_device rejection as no device', async () => {
     const api = makeApi();
     api.connected_device.mockRejectedValue(new Error('bridge down'));
-    window.pywebview = { api };
+    useBridge(api);
 
     await service.refresh();
 
@@ -160,7 +166,7 @@ describe('DeviceService', () => {
   it('stops polling after stop()', async () => {
     vi.useFakeTimers();
     const api = makeApi();
-    window.pywebview = { api };
+    useBridge(api);
 
     service.start();
     await vi.advanceTimersByTimeAsync(POLL_INTERVAL_WINDOW);

@@ -29,12 +29,15 @@ inspects Apple devices connected over USB.
 | Path | Purpose |
 | --- | --- |
 | `backend/pyproject.toml` | uv project: deps, `pineapple` and `pineapple-gui` entry points. |
-| `backend/src/pineapple/devices.py` | Async USB device access (`connected_devices`, `get_device_info`, `INFO_FIELDS`). |
-| `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices`, bound to `window.pywebview.api`. |
+| `backend/src/pineapple/devices.py` | Async USB device access (`connected_devices`, `single_device_udid`, `get_device_info`, `INFO_FIELDS`). |
+| `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
+| `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
+| `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
 | `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
+| `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/analysis/` | Analysis tab: intentionally empty for now. |
 | `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
 
@@ -85,12 +88,27 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
   unavailable; `get_device_info()` opens a lockdown connection (device must be
   paired — "Trust this computer") and raises when the device is unpaired or
   unreachable.
-- `api.py`: the **only** sync/async boundary — each method is `asyncio.run()`
-  over `devices`, called on a pywebview worker thread. `connected_device()`
-  applies the single-device policy: `{"status": "none" | "one" | "multiple"}`
-  (several devices are never auto-picked — wrong-device risk). `get_device_info()`
-  wraps the result in an `{"ok": True, "info": ...}` / `{"ok": False, "error":
-  ...}` envelope so the frontend can tell "needs trust" from "ready".
+- `api.py`: the sync/async boundary, called on a pywebview worker thread. Short
+  calls use `asyncio.run()` over `devices`; long-lived work (syslog) goes through
+  `session` instead. `connected_device()` applies the single-device policy:
+  `{"status": "none" | "one" | "multiple"}` (several devices are never
+  auto-picked — wrong-device risk). `get_device_info()` wraps the result in an
+  `{"ok": True, "info": ...}` / `{"ok": False, "error": ...}` envelope so the
+  frontend can tell "needs trust" from "ready". `start_syslog` / `read_syslog` /
+  `stop_syslog` drive one `SyslogStream`; `save_syslog` writes captured text via
+  a native save dialog.
+- `session.py`: one `asyncio` loop on a daemon thread, shared by streaming
+  features. `run(coro)` blocks for a result; `spawn(coro)` / `cancel(task)`
+  manage a background task from another thread. Deliberately minimal — it is the
+  shared connector, not a service registry.
+- `syslog.py`: `SyslogStream.start()` resolves the single device and spawns an
+  `OsTraceService.syslog()` reader on `session`; entries land in a
+  `deque(maxlen=5000)` under a lock. `read()` drains it and reports
+  `running` / `dropped` / `error` (unpaired or mid-stream disconnect). Same
+  "Trust this computer" requirement as `get_device_info`. `start`/`stop` hold an
+  op lock and `stop` blocks until the reader has closed its connections
+  (`async with OsTraceService`) — leaking that socket makes the device refuse
+  the next stream, so reopening the viewer would silently fail.
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.
@@ -98,6 +116,11 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
   2s, fetches full info once per device (retrying while `unpaired`), exposes a
   `DeviceState` signal. Idle no-op when `window.pywebview` is absent (plain
   browser).
+- frontend `SyslogService`: while the `SyslogDialog` is open, polls
+  `read_syslog()` every 400ms into a `lines` signal (capped, drop-oldest);
+  stops when the backend reports the stream ended. `SyslogDialog` adds
+  text/process filters, pause, clear and export over a `cdk-virtual-scroll`
+  list. Same idle no-op without the bridge.
 
 ## Git workflow
 
