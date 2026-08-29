@@ -1,7 +1,8 @@
 """pywebview host window for the Pineapple desktop UI.
 
-This module only opens the window and points it at the Angular frontend. It holds
-no device logic and no JS <-> Python bridge yet.
+This module opens the window, points it at the Angular frontend, and exposes the
+:class:`~pineapple.api.Api` bridge to the page as ``window.pywebview.api``. All
+device logic lives in :mod:`pineapple.main`.
 """
 
 import argparse
@@ -9,6 +10,8 @@ import sys
 from pathlib import Path
 
 import webview
+
+from pineapple.api import Api
 
 # Repo layout: <repo>/backend/src/pineapple/app.py -> parents[3] == <repo>
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -40,8 +43,8 @@ def _resolve_url(dev: bool) -> str:
     if not index.is_file():
         sys.exit(
             "Frontend build not found at "
-            f"{index}\nRun `npm install && npm run build` in the frontend/ directory first, "
-            "or start `npm start` there and launch with `--dev`."
+            f"{index}\nRun `pnpm install && pnpm run build` in the frontend/ directory first, "
+            "or start `pnpm start` there and launch with `--dev`."
         )
     return str(index)
 
@@ -53,6 +56,7 @@ def run(argv: list[str] | None = None) -> None:
     webview.create_window(
         WINDOW_TITLE,
         url,
+        js_api=Api(),
         width=1024,
         height=720,
         min_size=(900, 600),
