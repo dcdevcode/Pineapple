@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { DeviceService } from './device/device.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -20,5 +21,11 @@ describe('App', () => {
       (el) => (el as HTMLElement).textContent?.trim(),
     );
     expect(labels).toEqual(['Device', 'Analysis']);
+  });
+
+  it('should start watching for devices on creation', () => {
+    const start = vi.spyOn(DeviceService.prototype, 'start').mockImplementation(() => {});
+    TestBed.createComponent(App);
+    expect(start).toHaveBeenCalledOnce();
   });
 });
