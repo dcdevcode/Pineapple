@@ -25,3 +25,16 @@ uv run pineapple-gui
 # Desktop window against the Angular dev server (run `pnpm start` in ../frontend first)
 uv run pineapple-gui --dev
 ```
+
+## Checks
+
+```bash
+uv run ruff check . && uv run ruff format --check .
+uv run mypy          # strict
+uv run pytest
+```
+
+Tests live in `tests/` and never touch a device — the `pymobiledevice3` and
+`webview` boundary is faked (`tests/support.py`). Every new function with
+non-trivial behaviour gets a test in the same change.
+

@@ -16,7 +16,9 @@ inspects Apple devices connected over USB.
 
 - Built **incrementally**; the user orchestrates the project and reviews every
   change. Do not add scope, features, or "nice to haves" that were not requested.
-  Ask when something is unclear.
+  Ask when something is unclear. Never pick between real alternatives (a library,
+  a data shape, an API surface, a UX behaviour) on your own — ask the user
+  explicitly. Defaults are only for things with one obvious answer.
 - **Backend** (`backend/`): Python, [`uv`](https://docs.astral.sh/uv/) +
   `uv_build`, Python `>=3.14`. Device access via
   [`pymobiledevice3`](https://github.com/doronz88/pymobiledevice3); desktop window
@@ -35,11 +37,14 @@ inspects Apple devices connected over USB.
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
+| `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. |
 | `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
+| `frontend/src/app/settings/` | Settings: floating gear (`SettingsButton`) opens `SettingsDialog` (nav-rail shell); each section is its own component (`ThemeSettings`). `ThemeService` owns the light/dark/system preference. |
 | `frontend/src/app/analysis/` | Analysis tab: intentionally empty for now. |
 | `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
+| `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / test / build) on every push and PR. |
 
 ## Common commands
 
@@ -50,6 +55,9 @@ uv sync
 uv run pineapple                           # print connected devices + info
 uv run pineapple-gui                        # desktop window, serves frontend/dist
 uv run pineapple-gui --dev                  # desktop window against the Angular dev server
+uv run ruff check . && uv run ruff format --check .
+uv run mypy                                 # strict
+uv run pytest
 
 # Frontend (pnpm only)
 cd frontend
@@ -57,6 +65,7 @@ pnpm install
 pnpm run build                              # -> dist/pineapple-frontend/browser/
 pnpm start                                  # ng serve on http://localhost:4200
 pnpm test                                   # vitest
+pnpm exec prettier --check "src/**/*.{ts,html,scss}"
 ```
 
 Typical dev loop: `pnpm start` in `frontend/`, then `uv run pineapple-gui --dev` in `backend/`.
@@ -64,7 +73,9 @@ Typical dev loop: `pnpm start` in `frontend/`, then `uv run pineapple-gui --dev`
 ## UI / design system
 
 Target: **Material Design 3**, restrained and functional. Explicitly **not** the
-"generic AI" aesthetic.
+"generic AI" aesthetic. Every screen must look deliberately designed for *this*
+tool — never the default "AI assistant" look (centered hero text, gradient
+buttons, emoji, purple, glassmorphism).
 
 - **Dark theme**, a muted yellow as an **accent only** (`mat.$yellow-palette` as
   `primary`, a nod to the pineapple): active tab indicator, focus rings, later the
@@ -131,6 +142,12 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 ## Conventions
 
 - Type hints on public functions; short docstrings.
-- Keep code simple and readable — no premature abstraction.
-- Backend deps: `uv add` (keep `backend/uv.lock` committed).
+- Code is written to be read by humans first: clear names, small functions, the
+  simplest approach that works. No premature abstraction, no cleverness that
+  needs a comment to survive.
+- Every new function with non-trivial behaviour ships with its test in the same
+  change — backend in `backend/tests/` (`uv run pytest`), frontend in a
+  `*.spec.ts` (`pnpm test`). Pure glue and one-liners are exempt.
+- `ruff`, `mypy` (strict) and the test suites must stay green; CI enforces this.
+- Backend deps: `uv add` (dev tools via `uv add --dev`; keep `backend/uv.lock` committed).
 - Frontend deps: `pnpm add` (keep `frontend/pnpm-lock.yaml` committed; no `package-lock.json`).
