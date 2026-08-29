@@ -3,12 +3,16 @@
 
 html {
   height: 100%;
-  color-scheme: dark;
+  // Baseline for the "System" theme preference; ThemeService overrides this on
+  // <html> for an explicit Light / Dark choice.
+  color-scheme: light dark;
 
   @include mat.theme(
     (
       color: (
-        theme-type: dark,
+        // Emit every color token via light-dark(); the active side follows the
+        // color-scheme property above.
+        theme-type: color-scheme,
         primary: mat.$yellow-palette,
         tertiary: mat.$yellow-palette,
       ),
@@ -17,12 +21,12 @@ html {
     )
   );
 
-  // Surface tokens (not pure black; depth comes from Material elevation).
-  --app-bg: #121212;
-  --app-surface: #1e1e1e;
-  --app-border: rgba(255, 255, 255, 0.12);
-  --app-text: rgba(255, 255, 255, 0.87);
-  --app-text-muted: rgba(255, 255, 255, 0.6);
+  // Surface tokens (dark is not pure black; depth comes from Material elevation).
+  --app-bg: light-dark(#fafafa, #121212);
+  --app-surface: light-dark(#ffffff, #1e1e1e);
+  --app-border: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.12));
+  --app-text: light-dark(rgba(0, 0, 0, 0.87), rgba(255, 255, 255, 0.87));
+  --app-text-muted: light-dark(rgba(0, 0, 0, 0.6), rgba(255, 255, 255, 0.6));
 }
 
 body {
