@@ -12,11 +12,7 @@ export type DevicePresence =
 export type DeviceInfo = Record<string, string | number | boolean | null>;
 
 /** Result of `window.pywebview.api.get_device_info`. */
-export interface DeviceInfoResult {
-  ok: boolean;
-  info?: DeviceInfo;
-  error?: string;
-}
+export type DeviceInfoResult = { ok: true; info: DeviceInfo } | { ok: false; error: string };
 
 /** What the Device tab is currently showing. */
 export type DeviceState =

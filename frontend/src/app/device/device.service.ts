@@ -99,11 +99,11 @@ export class DeviceService {
     }
     if (requestId !== this.infoRequestId) return; // superseded or disconnected
 
-    if (!result.ok || !result.info) {
+    if (!result.ok) {
       this._state.set({
         status: 'unpaired',
         udid: device.Udid,
-        error: result.error ?? 'Device information is not available.',
+        error: result.error || 'Device information is not available.',
       });
       return;
     }
