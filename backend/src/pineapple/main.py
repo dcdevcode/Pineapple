@@ -67,6 +67,30 @@ async def _detect_devices() -> list[dict[str, Any]]:
     return devices
 
 
+async def _list_devices() -> list[dict[str, Any]]:
+    try:
+        mux_devices = await usbmux.list_devices()
+    except ConnectionFailedToUsbmuxdError:
+        return []
+
+    return [
+        {"Udid": device.serial, "ConnectionType": device.connection_type}
+        for device in mux_devices
+        if device.is_usb
+    ]
+
+
+def list_devices() -> list[dict[str, Any]]:
+    """Return the USB devices reported by the local usbmuxd daemon.
+
+    This never talks to the device itself, so it is cheap enough to call on a
+    poll. Each item has ``Udid`` and ``ConnectionType``. The list is empty when
+    no device is connected or usbmuxd is unavailable. Use :func:`get_device_info`
+    to read the full details of a device.
+    """
+    return asyncio.run(_list_devices())
+
+
 def detect_devices() -> list[dict[str, Any]]:
     """Return the list of Apple devices connected over USB.
 
