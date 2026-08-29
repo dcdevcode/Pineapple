@@ -1,8 +1,7 @@
 """pywebview host window for the Pineapple desktop UI.
 
-This module opens the window, points it at the Angular frontend, and exposes the
-:class:`~pineapple.api.Api` bridge to the page as ``window.pywebview.api``. All
-device logic lives in :mod:`pineapple.main`.
+Opens the window, points it at the Angular frontend, and exposes the
+:class:`~pineapple.api.Api` bridge as ``window.pywebview.api``.
 """
 
 import argparse

@@ -1,31 +1,26 @@
-"""JS <-> Python bridge exposed to the Angular frontend via pywebview's js_api.
+"""Synchronous bridge over :mod:`pineapple.devices`, bound to
+``window.pywebview.api`` in the frontend.
 
-The methods here are thin wrappers over :mod:`pineapple.main` that return plain
-JSON-serializable values. Method names stay in snake_case because they appear
-verbatim as ``window.pywebview.api.<name>`` in the frontend.
+pywebview calls these methods from a worker thread with no event loop, so this
+is the one place the async device layer is run. Method names are snake_case
+because they appear verbatim as ``window.pywebview.api.<name>``.
 """
 
+import asyncio
 from typing import Any
 
-from pineapple.main import get_device_info, list_devices
+from pineapple import devices
 
 
 class Api:
-    """Object bound to ``window.pywebview.api`` in the frontend."""
-
-    def list_devices(self) -> list[dict[str, Any]]:
-        """Return connected USB devices (usbmuxd only). Cheap enough to poll."""
-        return list_devices()
+    def list_devices(self) -> list[dict[str, str]]:
+        return asyncio.run(devices.list_devices())
 
     def get_device_info(self, udid: str) -> dict[str, Any]:
-        """Return the full information for one device.
-
-        ``{"ok": True, "info": {...}}`` on success, or
-        ``{"ok": False, "error": "<message>"}`` when the device is not paired
-        ("Trust this computer"), was unplugged, or is otherwise unreachable.
-        """
+        """``{"ok": True, "info": {...}}``, or ``{"ok": False, "error": ...}``
+        when the device is unpaired or unreachable."""
         try:
-            info = get_device_info(udid)
-        except Exception as error:  # not paired, trust denied, disconnected, ...
+            info = asyncio.run(devices.get_device_info(udid))
+        except Exception as error:
             return {"ok": False, "error": str(error)}
         return {"ok": True, "info": info}

@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pineapple = "pineapple:main"
+pineapple = "pineapple.cli:main"
 pineapple-gui = "pineapple.app:run"
 
 [build-system]

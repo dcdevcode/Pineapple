@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from pineapple!")
+"""iOS forensic analysis tool - backend."""
