@@ -29,10 +29,11 @@ inspects Apple devices connected over USB.
 | Path | Purpose |
 | --- | --- |
 | `backend/pyproject.toml` | uv project: deps, `pineapple` and `pineapple-gui` entry points. |
-| `backend/src/pineapple/main.py` | USB device detection / info helpers (`detect_devices`, `get_device_info`). |
-| `backend/src/pineapple/app.py` | pywebview host window (no device logic, no JS↔Python bridge yet). |
-| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs. |
-| `frontend/src/app/device/` | Device tab: centered iPhone SVG + "Connect a device to get started". |
+| `backend/src/pineapple/main.py` | USB device helpers (`list_devices`, `detect_devices`, `get_device_info`). |
+| `backend/src/pineapple/api.py` | `Api` class exposed to the frontend as `window.pywebview.api`. |
+| `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
+| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
+| `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/analysis/` | Analysis tab: intentionally empty for now. |
 | `frontend/src/styles.scss` | Global Angular Material theme (dark, red accent). |
 
@@ -73,18 +74,28 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 - **Forbidden**: gradients, glassmorphism / blur panels, neon glow, emoji, purple,
   decorative hero art, marketing-style layouts.
 - Illustrations are clean monochrome line-art of the real object (see the iPhone
-  SVG in `device/device.html`) — no photos, no 3D, no glow.
+  SVG in `device/phone-outline/phone-outline.html`) — no photos, no 3D, no glow.
 
 ## `backend/src/pineapple` notes
 
 - `main.py`: `pymobiledevice3` v11 is **async**; the public helpers are
-  **synchronous** wrappers around private coroutines (`_detect_devices`,
-  `_get_device_info`). `detect_devices()` returns `[]` when usbmuxd is
-  unavailable and an `Error` entry for unreachable devices. Full info needs the
-  device paired ("Trust this computer"). Always close lockdown connections.
+  **synchronous** wrappers around private coroutines (`_list_devices`,
+  `_detect_devices`, `_get_device_info`). `list_devices()` talks only to the
+  local usbmuxd daemon (no device contact — safe to poll); `detect_devices()`
+  and `get_device_info()` open a lockdown connection. All return `[]` / raise
+  when usbmuxd is unavailable. Full info needs the device paired ("Trust this
+  computer"). Always close lockdown connections.
+- `api.py`: `Api.get_device_info()` wraps `main.get_device_info()` in an
+  `{"ok": True, "info": ...}` / `{"ok": False, "error": ...}` envelope so the
+  frontend can tell "needs trust" from "ready". `Api.list_devices()` passes
+  through. Each method runs on a pywebview worker thread.
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.
+- frontend `DeviceService`: polls `window.pywebview.api.list_devices()` every 2s,
+  fetches full info once per device (retrying while `unpaired`), exposes a
+  `DeviceState` signal. Idle no-op when `window.pywebview` is absent (plain
+  browser).
 
 ## Git workflow
 
