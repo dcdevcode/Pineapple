@@ -1,12 +1,32 @@
 .device {
   height: 100%;
+  box-sizing: border-box;
+  padding: 32px;
+}
+
+// Empty state: mockup + hint centered in the tab.
+.device--empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 24px;
-  padding: 32px;
-  box-sizing: border-box;
+}
+
+// Connected state: name above the mockup, info to its right.
+.device--connected {
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  justify-content: center;
+  column-gap: 32px;
+  row-gap: 16px;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'name  .'
+    'phone info';
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 .device__phone {
@@ -14,9 +34,80 @@
   color: var(--app-text-muted);
 }
 
+.device--connected .device__phone {
+  grid-area: phone;
+}
+
+.device__name {
+  grid-area: name;
+  margin: 0;
+  font: var(--mat-sys-headline-small);
+  color: var(--app-text);
+}
+
+.device__panel {
+  grid-area: info;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
 .device__hint {
   margin: 0;
   color: var(--app-text-muted);
   font: var(--mat-sys-body-large);
   letter-spacing: 0.15px;
+}
+
+.device__info {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 24px;
+  row-gap: 8px;
+}
+
+.device__row {
+  display: contents;
+}
+
+.device__info dt {
+  color: var(--app-text-muted);
+  font: var(--mat-sys-body-medium);
+}
+
+.device__info dd {
+  margin: 0;
+  color: var(--app-text);
+  font: var(--mat-sys-body-medium);
+  overflow-wrap: anywhere;
+}
+
+.device__status {
+  margin: 0;
+  color: var(--app-text);
+  font: var(--mat-sys-body-large);
+}
+
+.device__detail {
+  margin: 0;
+  color: var(--app-text-muted);
+  font: var(--mat-sys-body-small);
+  overflow-wrap: anywhere;
+}
+
+.device__action {
+  align-self: start;
+}
+
+@media (max-width: 560px) {
+  .device--connected {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'name'
+      'phone'
+      'info';
+    justify-items: start;
+  }
 }

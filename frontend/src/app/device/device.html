@@ -1,4 +1,51 @@
-<section class="device">
-  <app-phone-outline class="device__phone" />
-  <p class="device__hint">Connect a device to get started</p>
-</section>
+@let s = state();
+
+@if (s.status === 'idle') {
+  <section class="device device--empty">
+    <app-phone-outline class="device__phone" />
+    <p class="device__hint">Connect a device to get started</p>
+  </section>
+} @else {
+  <section class="device device--connected">
+    <h2 class="device__name">
+      {{ s.status === 'ready' ? s.name : 'Device connected' }}
+    </h2>
+
+    <app-phone-outline class="device__phone" />
+
+    <div class="device__panel">
+      @if (s.status === 'connecting') {
+        <p class="device__status">Reading device information…</p>
+      }
+
+      @if (s.status === 'unpaired') {
+        <p class="device__status">
+          Unlock the device and tap “Trust” to allow access, then wait a moment.
+        </p>
+        <p class="device__detail">{{ s.error }}</p>
+      }
+
+      @if (s.status === 'ready') {
+        <dl class="device__info">
+          @for (field of fields; track field.key) {
+            @if (displayValue(s.info, field); as value) {
+              <div class="device__row">
+                <dt>{{ field.label }}</dt>
+                <dd>{{ value }}</dd>
+              </div>
+            }
+          }
+        </dl>
+      }
+
+      <button
+        matButton="filled"
+        class="device__action"
+        type="button"
+        [disabled]="s.status !== 'ready'"
+      >
+        Create Pineapple Logical Image
+      </button>
+    </div>
+  </section>
+}
