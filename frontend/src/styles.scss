@@ -1,4 +1,5 @@
-// Dark Material Design 3 theme. Yellow is an accent only (see CLAUDE.md design system).
+// Material Design 3 theme (light / dark via `color-scheme`). Yellow is an accent
+// only (see CLAUDE.md design system).
 @use '@angular/material' as mat;
 
 html {
@@ -18,6 +19,18 @@ html {
       ),
       typography: Roboto,
       density: 0,
+    )
+  );
+
+  // Render the tab bar as a segmented control: no ink bar, no header divider,
+  // the active label reads on the selected pill (styled below).
+  @include mat.tabs-overrides(
+    (
+      divider-height: 0,
+      active-indicator-color: transparent,
+      active-label-text-color: var(--mat-sys-on-secondary-container),
+      active-focus-label-text-color: var(--mat-sys-on-secondary-container),
+      active-hover-label-text-color: var(--mat-sys-on-secondary-container),
     )
   );
 
@@ -45,4 +58,48 @@ body {
 // The tab shell fills the window; let the active tab panel take the remaining height.
 app-root .mat-mdc-tab-body-wrapper {
   flex: 1;
+}
+
+// Tab bar as an MD3 segmented control: the two tabs sit in one centered, rounded
+// container and the active tab is a filled "pill". These rules target MDC's DOM
+// classes because the pill shape has no theme token to override.
+app-root {
+  .mat-mdc-tab-header {
+    justify-content: center;
+    padding: 16px 0 8px;
+    border: 0;
+  }
+
+  // Keep the tab list at its natural width so the container can be centered.
+  .mat-mdc-tab-label-container {
+    flex: 0 1 auto;
+  }
+
+  .mat-mdc-tab-list {
+    flex-grow: 0;
+  }
+
+  // The rounded container ("bubble") wrapping both tabs.
+  .mat-mdc-tab-labels {
+    justify-content: center;
+    gap: 4px;
+    padding: 4px;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+  }
+
+  .mat-mdc-tab.mdc-tab {
+    flex-grow: 0;
+    min-width: 0;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 20px;
+    border-radius: 999px;
+    overflow: hidden; // clip the ripple / state layer to the pill
+  }
+
+  .mat-mdc-tab.mdc-tab--active {
+    background: var(--mat-sys-secondary-container);
+  }
 }
