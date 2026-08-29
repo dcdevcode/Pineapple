@@ -1,0 +1,55 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.settings {
+  display: flex;
+  height: 100%;
+  background: var(--app-surface);
+}
+
+.settings__nav {
+  flex: none;
+  width: 200px;
+  box-sizing: border-box;
+  padding: 12px 8px;
+  border-right: 1px solid var(--app-border);
+}
+
+.settings__brand {
+  margin: 8px 12px 12px;
+  font: var(--mat-sys-title-medium);
+  color: var(--app-text);
+}
+
+.settings__content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.settings__heading {
+  margin: 0 0 4px;
+  font: var(--mat-sys-title-large);
+  color: var(--app-text);
+}
+
+.settings__hint {
+  margin: 0 0 24px;
+  font: var(--mat-sys-body-medium);
+  color: var(--app-text-muted);
+}
+
+.settings__radios {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings__note {
+  display: block;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+}

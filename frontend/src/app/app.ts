@@ -3,11 +3,11 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { Device } from './device/device';
 import { Analysis } from './analysis/analysis';
 import { DeviceService } from './device/device.service';
-import { SettingsMenu } from './settings/settings-menu';
+import { SettingsButton } from './settings/settings-button';
 
 @Component({
   selector: 'app-root',
-  imports: [MatTabsModule, Device, Analysis, SettingsMenu],
+  imports: [MatTabsModule, Device, Analysis, SettingsButton],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

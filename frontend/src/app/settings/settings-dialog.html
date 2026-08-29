@@ -1,0 +1,39 @@
+<div class="settings">
+  <nav class="settings__nav">
+    <h2 class="settings__brand">Settings</h2>
+    <mat-nav-list>
+      @for (section of sections; track section.id) {
+        <a
+          mat-list-item
+          [activated]="activeSection() === section.id"
+          (click)="activeSection.set(section.id)"
+        >
+          {{ section.label }}
+        </a>
+      }
+    </mat-nav-list>
+  </nav>
+
+  <section class="settings__content">
+    @switch (activeSection()) {
+      @case ('theme') {
+        <h3 class="settings__heading">Theme</h3>
+        <p class="settings__hint">Choose how Pineapple looks.</p>
+
+        <mat-radio-group
+          class="settings__radios"
+          aria-label="Theme"
+          [ngModel]="preference()"
+          (ngModelChange)="theme.setPreference($event)"
+        >
+          <mat-radio-button value="light">Light</mat-radio-button>
+          <mat-radio-button value="dark">Dark</mat-radio-button>
+          <mat-radio-button value="system">
+            System
+            <span class="settings__note">Follow the operating system</span>
+          </mat-radio-button>
+        </mat-radio-group>
+      }
+    }
+  </section>
+</div>
