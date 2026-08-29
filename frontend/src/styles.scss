@@ -1,4 +1,4 @@
-// Dark Material Design 3 theme. Red is an accent only (see CLAUDE.md design system).
+// Dark Material Design 3 theme. Yellow is an accent only (see CLAUDE.md design system).
 @use '@angular/material' as mat;
 
 html {
@@ -9,8 +9,8 @@ html {
     (
       color: (
         theme-type: dark,
-        primary: mat.$red-palette,
-        tertiary: mat.$red-palette,
+        primary: mat.$yellow-palette,
+        tertiary: mat.$yellow-palette,
       ),
       typography: Roboto,
       density: 0,

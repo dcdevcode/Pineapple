@@ -36,7 +36,7 @@ inspects Apple devices connected over USB.
 | `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/analysis/` | Analysis tab: intentionally empty for now. |
-| `frontend/src/styles.scss` | Global Angular Material theme (dark, red accent). |
+| `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
 
 ## Common commands
 
@@ -63,9 +63,9 @@ Typical dev loop: `pnpm start` in `frontend/`, then `uv run pineapple-gui --dev`
 Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 "generic AI" aesthetic.
 
-- **Dark theme**, red as an **accent only** (`mat.$red-palette` as `primary`):
-  active tab indicator, focus rings, later the primary button. Never large red
-  fills or red gradients.
+- **Dark theme**, a muted yellow as an **accent only** (`mat.$yellow-palette` as
+  `primary`, a nod to the pineapple): active tab indicator, focus rings, later the
+  primary button. Never large yellow fills or yellow gradients.
 - Surfaces from `styles.scss` tokens: `--app-bg: #121212`, `--app-surface: #1e1e1e`.
   Not pure black. Depth comes from Material elevation, not custom shadows or glow.
 - Typeface: **Roboto**, self-hosted via `@fontsource/roboto` (weights 400/500).
