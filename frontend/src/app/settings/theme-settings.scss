@@ -1,0 +1,27 @@
+:host {
+  display: block;
+}
+
+.theme-settings__heading {
+  margin: 0 0 4px;
+  font: var(--mat-sys-title-large);
+  color: var(--app-text);
+}
+
+.theme-settings__hint {
+  margin: 0 0 24px;
+  font: var(--mat-sys-body-medium);
+  color: var(--app-text-muted);
+}
+
+.theme-settings__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-settings__note {
+  display: block;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+}
