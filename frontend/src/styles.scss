@@ -1,0 +1,42 @@
+// Angular Material theme (Material Design 3).
+// Dark color scheme, red used strictly as an accent (tab indicator, focus rings,
+// future primary actions) - never as large fills or gradients.
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  color-scheme: dark;
+
+  @include mat.theme(
+    (
+      color: (
+        theme-type: dark,
+        primary: mat.$red-palette,
+        tertiary: mat.$red-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+
+  // Application surface tokens. Material dark spec: not pure black, no gradient.
+  // Elevation is conveyed with Material's own overlays, not custom shadows/glow.
+  --app-bg: #121212;
+  --app-surface: #1e1e1e;
+  --app-border: rgba(255, 255, 255, 0.12);
+  --app-text: rgba(255, 255, 255, 0.87);
+  --app-text-muted: rgba(255, 255, 255, 0.6);
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  font: var(--mat-sys-body-medium);
+  font-family:
+    Roboto,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}

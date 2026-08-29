@@ -1,0 +1,23 @@
+.device {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+.device__phone {
+  width: 132px;
+  height: auto;
+  color: var(--app-text-muted);
+}
+
+.device__hint {
+  margin: 0;
+  color: var(--app-text-muted);
+  font: var(--mat-sys-body-large);
+  letter-spacing: 0.15px;
+}
