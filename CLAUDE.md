@@ -11,56 +11,90 @@ in the repo is in Spanish.
 
 ## Project overview
 
-`pineapple` is a Python project for talking to Apple devices (iPhone/iPad) over USB
-using [`pymobiledevice3`](https://github.com/doronz88/pymobiledevice3).
+`pineapple` is an **iOS forensic analysis tool** — a desktop application that
+inspects Apple devices connected over USB.
 
-- Package source: `src/pineapple/`
-- Python: `>=3.14` (see `.python-version`)
-- Dependency management / build: [`uv`](https://docs.astral.sh/uv/) with the
-  `uv_build` backend (`pyproject.toml`, `uv.lock`).
-- Single runtime dependency: `pymobiledevice3>=11.2.1`.
+- Built **incrementally**; the user orchestrates the project and reviews every
+  change. Do not add scope, features, or "nice to haves" that were not requested.
+  Ask when something is unclear.
+- **Backend** (`backend/`): Python, [`uv`](https://docs.astral.sh/uv/) +
+  `uv_build`, Python `>=3.14`. Device access via
+  [`pymobiledevice3`](https://github.com/doronz88/pymobiledevice3); desktop window
+  via [`pywebview`](https://pywebview.flowrl.com/).
+- **Frontend** (`frontend/`): Angular + Angular Material, **`pnpm` only**
+  (never `npm`/`yarn`). Rendered inside the pywebview window.
 
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
-| `src/pineapple/__init__.py` | Package init; defines the `pineapple` console-script entry point (`main`). |
-| `src/pineapple/main.py` | Device detection and info helpers (`detect_devices`, `get_device_info`, `main`). |
+| `backend/pyproject.toml` | uv project: deps, `pineapple` and `pineapple-gui` entry points. |
+| `backend/src/pineapple/main.py` | USB device detection / info helpers (`detect_devices`, `get_device_info`). |
+| `backend/src/pineapple/app.py` | pywebview host window (no device logic, no JS↔Python bridge yet). |
+| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs. |
+| `frontend/src/app/device/` | Device tab: centered iPhone SVG + "Connect a device to get started". |
+| `frontend/src/app/analysis/` | Analysis tab: intentionally empty for now. |
+| `frontend/src/styles.scss` | Global Angular Material theme (dark, red accent). |
 
 ## Common commands
 
 ```bash
-# Install / sync the environment
+# Backend
+cd backend
 uv sync
+uv run python src/pineapple/main.py        # device detection helpers
+uv run pineapple-gui                        # desktop window, serves frontend/dist
+uv run pineapple-gui --dev                  # desktop window against the Angular dev server
 
-# Run the device script directly
-.venv/bin/python src/pineapple/main.py
-
-# Syntax check
-.venv/bin/python -m py_compile src/pineapple/main.py
-
-# Reference CLI from pymobiledevice3 (useful to cross-check output)
-.venv/bin/python -m pymobiledevice3 usbmux list --usb
-.venv/bin/python -m pymobiledevice3 lockdown info
+# Frontend (pnpm only)
+cd frontend
+pnpm install
+pnpm run build                              # -> dist/pineapple-frontend/browser/
+pnpm start                                  # ng serve on http://localhost:4200
+pnpm test                                   # vitest
 ```
 
-## `src/pineapple/main.py` notes
+Typical dev loop: `pnpm start` in `frontend/`, then `uv run pineapple-gui --dev` in `backend/`.
 
-- `pymobiledevice3` v11 exposes an **async** API. The public helpers here are
-  **synchronous** wrappers that call `asyncio.run()` over private coroutines
-  (`_detect_devices`, `_get_device_info`).
-- `detect_devices()` lists usbmuxd devices, keeps the USB ones, and connects to
-  lockdownd with `autopair=False` to read `lockdown.short_info`. It returns `[]`
-  when usbmuxd is unavailable and adds an `Error` entry for a device that cannot
-  be reached (e.g. not paired / trust not granted).
-- `get_device_info()` accepts a UDID string or a dict from `detect_devices()` and
-  returns a curated dict built from `lockdown.all_values` using
-  `DEVICE_INFO_FIELDS`.
-- Always close lockdown connections (`await lockdown.close()` in a `try/finally`).
-- Full device info requires the device to be paired ("Trust this computer").
+## UI / design system
+
+Target: **Material Design 3**, restrained and functional. Explicitly **not** the
+"generic AI" aesthetic.
+
+- **Dark theme**, red as an **accent only** (`mat.$red-palette` as `primary`):
+  active tab indicator, focus rings, later the primary button. Never large red
+  fills or red gradients.
+- Surfaces from `styles.scss` tokens: `--app-bg: #121212`, `--app-surface: #1e1e1e`.
+  Not pure black. Depth comes from Material elevation, not custom shadows or glow.
+- Typeface: **Roboto**, self-hosted via `@fontsource/roboto` (weights 400/500).
+  No Google Fonts / CDN links — the app must work offline.
+- Material 8dp spacing grid and the standard Material type scale
+  (`var(--mat-sys-*)`).
+- **Forbidden**: gradients, glassmorphism / blur panels, neon glow, emoji, purple,
+  decorative hero art, marketing-style layouts.
+- Illustrations are clean monochrome line-art of the real object (see the iPhone
+  SVG in `device/device.html`) — no photos, no 3D, no glow.
+
+## `backend/src/pineapple` notes
+
+- `main.py`: `pymobiledevice3` v11 is **async**; the public helpers are
+  **synchronous** wrappers around private coroutines (`_detect_devices`,
+  `_get_device_info`). `detect_devices()` returns `[]` when usbmuxd is
+  unavailable and an `Error` entry for unreachable devices. Full info needs the
+  device paired ("Trust this computer"). Always close lockdown connections.
+- `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
+  `http://localhost:4200`, otherwise serves the production build with pywebview's
+  built-in HTTP server. Exits with a clear message if the build is missing.
+
+## Git workflow
+
+- Work happens on the **`Dev`** branch. `main` holds the baseline.
+- Commit every logical step. Commit messages in English.
+- Push / open PRs only when the user asks.
 
 ## Conventions
 
 - Type hints on public functions; short docstrings.
 - Keep code simple and readable — no premature abstraction.
-- Only add dependencies through `uv add`; keep `uv.lock` committed.
+- Backend deps: `uv add` (keep `backend/uv.lock` committed).
+- Frontend deps: `pnpm add` (keep `frontend/pnpm-lock.yaml` committed; no `package-lock.json`).
