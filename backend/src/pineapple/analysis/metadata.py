@@ -1,8 +1,9 @@
 """The essential facts about a backup, read from its three plists.
 
-``Info.plist`` (plain XML), ``Manifest.plist`` and ``Status.plist`` (binary) sit
-at the root of every MobileBackup2 backup and are never encrypted, so this can
-run straight off the ``.pineapple`` zip -- see :func:`pineapple.analysis.archive.peek`.
+``Info.plist``, ``Manifest.plist`` and ``Status.plist`` (each XML or binary --
+:func:`plistlib.loads` handles both) sit at the root of every MobileBackup2
+backup and are never encrypted, so this can run straight off the ``.pineapple``
+zip -- see :func:`pineapple.analysis.archive.peek`.
 """
 
 from __future__ import annotations

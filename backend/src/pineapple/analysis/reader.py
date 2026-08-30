@@ -218,6 +218,9 @@ class EncryptedBackupReader:
         if self._conn is not None:
             self._conn.close()
             self._conn = None
+        # `iphone_backup_decrypt` extracts into a private temp dir and only
+        # removes it in its own (private, undocumented) `_cleanup`. Call it if
+        # present; tolerate its absence on a library upgrade.
         cleanup = getattr(self._backup, "_cleanup", None)
         if callable(cleanup):
             cleanup()

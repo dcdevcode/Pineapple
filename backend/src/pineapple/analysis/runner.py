@@ -49,10 +49,6 @@ _OPEN_END = 55.0
 _INDEX_END = 70.0
 _PARSING_END = 95.0
 
-RUNNING_PHASES = frozenset(
-    {"extracting", "opening", "indexing", "parsing", "writing_descriptor"}
-)
-
 
 class _Cancelled(Exception):
     """Raised inside the pipeline thread when cancellation is requested."""
@@ -156,6 +152,9 @@ class AnalysisRun:
             await asyncio.shield(future)
         except asyncio.CancelledError:
             # Let the worker thread notice the event and roll back before we go.
+            # Any exception it raises during that unwind is deliberately dropped
+            # here -- `_pipeline` has already recorded the outcome and cleaned
+            # up the partial case.
             self._cancelled.set()
             with contextlib.suppress(Exception):
                 await future
@@ -271,7 +270,7 @@ class AnalysisRun:
                     skipped.append(f"{spec.name}: not present in the backup")
                 continue
             try:
-                counts[spec.name] = spec.parse(source, conn)
+                counts[spec.counts_as] = spec.parse(source, conn)
                 conn.commit()
             except ArtifactUnreadable as error:
                 skipped.append(str(error))

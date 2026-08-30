@@ -61,7 +61,7 @@ def test_full_run_on_an_unencrypted_image(
     assert state["counts"]["notes"] == 1
     assert state["counts"]["safari_history"] == 2
     assert state["counts"]["safari_bookmarks"] == 1
-    assert state["counts"]["whatsapp"] == 2
+    assert state["counts"]["whatsapp_messages"] == 2
     assert state["counts"]["files"] == BACKUP_FILE_COUNT
 
     assert (case_dir / "analysis.db").is_file()

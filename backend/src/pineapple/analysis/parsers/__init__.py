@@ -44,6 +44,14 @@ class ParserSpec:
     # *unencrypted* backups; when one of those is missing and the backup is not
     # encrypted, that is expected rather than an anomaly.
     encrypted_only: bool = False
+    # `analysis.db` table the parser's return count belongs to, when it differs
+    # from `name` (whatsapp fills whatsapp_chats + whatsapp_messages).
+    count_key: str | None = None
+
+    @property
+    def counts_as(self) -> str:
+        """The count key for this parser -- ``count_key`` or, by default, ``name``."""
+        return self.count_key or self.name
 
 
 ARTIFACT_PARSERS: list[ParserSpec] = [
@@ -85,6 +93,7 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "ChatStorage.sqlite",
         "AppDomainGroup-group.net.whatsapp.WhatsApp.shared",
         parse_whatsapp,
+        count_key="whatsapp_messages",
     ),
 ]
 

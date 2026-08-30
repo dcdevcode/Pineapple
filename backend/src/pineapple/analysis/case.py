@@ -61,6 +61,7 @@ _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
 
 
 def _page(limit: int, offset: int) -> tuple[int, int]:
+    """Clamp a caller-supplied ``(limit, offset)`` to ``1..MAX_PAGE`` / ``>= 0``."""
     return max(1, min(int(limit), MAX_PAGE)), max(0, int(offset))
 
 
@@ -83,6 +84,8 @@ def _image_mime(data: bytes) -> str | None:
     for signature, mime in _IMAGE_SIGNATURES:
         if data.startswith(signature):
             return mime
+    # HEIC/HEIF: an ISO base-media file whose `ftyp` box (bytes 4..12, after the
+    # 4-byte box length) carries one of these brands.
     if data[4:12] in {b"ftypheic", b"ftypheix", b"ftypmif1"}:
         return "image/heic"
     return None
@@ -148,10 +151,22 @@ class CaseHandle:
 
     # -- descriptor / summary ---------------------------------------------
 
+    @staticmethod
+    def _search_where(search: str | None, *columns: str) -> tuple[str, list[Any]]:
+        """A ``WHERE col LIKE ? OR …`` fragment over ``columns`` (or ``""`` when
+        ``search`` is empty), plus the ``%search%`` params it binds."""
+        if not search:
+            return "", []
+        clause = " OR ".join(f"{column} LIKE ?" for column in columns)
+        return f"WHERE {clause}", [f"%{search}%"] * len(columns)
+
     def descriptor(self) -> dict[str, Any]:
+        """The case descriptor (device, source archive, parse outcome) as a dict."""
         return self._descriptor.to_dict()
 
     def summary(self) -> dict[str, Any]:
+        """Descriptor essentials plus a per-table row count and the encryption /
+        files-unlocked state the browser switches on."""
         with closing(self._connect()) as conn:
             row = conn.execute("SELECT * FROM backup_info LIMIT 1").fetchone()
             counts = {
@@ -171,6 +186,7 @@ class CaseHandle:
     # -- artifact queries ------------------------------------------------
 
     def apps(self) -> list[dict[str, Any]]:
+        """Every installed app (bundle id, name, version), ordered by bundle id."""
         with closing(self._connect()) as conn:
             return [
                 dict(row)
@@ -180,6 +196,7 @@ class CaseHandle:
             ]
 
     def domains(self) -> list[dict[str, Any]]:
+        """Each backup domain and its file count, for the Files filter."""
         with closing(self._connect()) as conn:
             return [
                 {"domain": row[0], "count": row[1]}
@@ -195,6 +212,8 @@ class CaseHandle:
         limit: int = DEFAULT_PAGE,
         offset: int = 0,
     ) -> dict[str, Any]:
+        """One page of the file index, optionally scoped to a domain and/or a
+        relative-path substring."""
         where, params = self._files_where(domain, search)
         return self._page_query(
             "SELECT file_id, domain, relative_path, is_dir, size, mtime, btime, target "
@@ -211,11 +230,9 @@ class CaseHandle:
         limit: int = DEFAULT_PAGE,
         offset: int = 0,
     ) -> dict[str, Any]:
-        where = ""
-        params: list[Any] = []
-        if search:
-            where = "WHERE text LIKE ? OR address LIKE ?"
-            params = [f"%{search}%"] * 2
+        """One page of SMS / iMessage rows, oldest first; ``search`` matches text
+        or address."""
+        where, params = self._search_where(search, "text", "address")
         return self._page_query(
             "SELECT rowid, chat_id, address, service, is_from_me, date_utc, text, "
             f"attachments FROM messages {where} ORDER BY date_utc",
@@ -226,6 +243,7 @@ class CaseHandle:
         )
 
     def calls(self, limit: int = DEFAULT_PAGE, offset: int = 0) -> dict[str, Any]:
+        """One page of call-history rows, most recent first."""
         return self._page_query(
             "SELECT rowid, address, service, direction, date_utc, duration_seconds "
             "FROM calls ORDER BY date_utc DESC",
@@ -241,14 +259,11 @@ class CaseHandle:
         limit: int = DEFAULT_PAGE,
         offset: int = 0,
     ) -> dict[str, Any]:
-        where = ""
-        params: list[Any] = []
-        if search:
-            where = (
-                "WHERE first LIKE ? OR last LIKE ? OR organization LIKE ? "
-                "OR phones LIKE ? OR emails LIKE ?"
-            )
-            params = [f"%{search}%"] * 5
+        """One page of contacts, by last then first name; ``search`` matches any
+        name, organization, phone or email."""
+        where, params = self._search_where(
+            search, "first", "last", "organization", "phones", "emails"
+        )
         return self._page_query(
             "SELECT rowid, first, last, organization, phones, emails "
             f"FROM contacts {where} ORDER BY last, first",
@@ -264,11 +279,9 @@ class CaseHandle:
         limit: int = DEFAULT_PAGE,
         offset: int = 0,
     ) -> dict[str, Any]:
-        where = ""
-        params: list[Any] = []
-        if search:
-            where = "WHERE title LIKE ? OR snippet LIKE ? OR body LIKE ?"
-            params = [f"%{search}%"] * 3
+        """One page of notes, most recently modified first; ``search`` matches
+        title, snippet or body."""
+        where, params = self._search_where(search, "title", "snippet", "body")
         return self._page_query(
             "SELECT rowid, folder, title, snippet, body, created_utc, modified_utc "
             f"FROM notes {where} ORDER BY modified_utc DESC",
@@ -284,11 +297,9 @@ class CaseHandle:
         limit: int = DEFAULT_PAGE,
         offset: int = 0,
     ) -> dict[str, Any]:
-        where = ""
-        params: list[Any] = []
-        if search:
-            where = "WHERE url LIKE ? OR title LIKE ?"
-            params = [f"%{search}%"] * 2
+        """One page of Safari history, most recent visit first; ``search`` matches
+        URL or page title."""
+        where, params = self._search_where(search, "url", "title")
         return self._page_query(
             "SELECT rowid, url, title, visit_utc, visit_count "
             f"FROM safari_history {where} ORDER BY visit_utc DESC",
@@ -304,11 +315,9 @@ class CaseHandle:
         limit: int = DEFAULT_PAGE,
         offset: int = 0,
     ) -> dict[str, Any]:
-        where = ""
-        params: list[Any] = []
-        if search:
-            where = "WHERE title LIKE ? OR url LIKE ? OR folder LIKE ?"
-            params = [f"%{search}%"] * 3
+        """One page of Safari bookmarks, by folder then title; ``search`` matches
+        title, URL or folder."""
+        where, params = self._search_where(search, "title", "url", "folder")
         return self._page_query(
             "SELECT rowid, title, url, folder "
             f"FROM safari_bookmarks {where} ORDER BY folder, title",
@@ -321,6 +330,7 @@ class CaseHandle:
     def whatsapp_chats(
         self, limit: int = DEFAULT_PAGE, offset: int = 0
     ) -> dict[str, Any]:
+        """One page of WhatsApp conversations, most recently active first."""
         return self._page_query(
             "SELECT rowid, jid, name, last_message_utc, message_count "
             "FROM whatsapp_chats ORDER BY last_message_utc DESC",
@@ -337,6 +347,8 @@ class CaseHandle:
         limit: int = DEFAULT_PAGE,
         offset: int = 0,
     ) -> dict[str, Any]:
+        """One page of WhatsApp messages, oldest first; optionally scoped to one
+        chat and/or a text substring."""
         clauses: list[str] = []
         params: list[Any] = []
         if chat_jid:

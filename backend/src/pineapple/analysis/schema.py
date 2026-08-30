@@ -36,6 +36,9 @@ CREATE TABLE apps (
     version   TEXT
 );
 
+-- `flags`, `mode` and `ctime` are captured from the Manifest for forensic
+-- completeness; no query reads them yet (the browser shows is_dir / size /
+-- mtime / btime / target).
 CREATE TABLE files (
     file_id       TEXT PRIMARY KEY,
     domain        TEXT NOT NULL,
