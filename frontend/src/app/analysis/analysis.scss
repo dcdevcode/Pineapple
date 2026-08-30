@@ -81,6 +81,24 @@
   overflow-y: auto;
 }
 
+.analysis__nav mat-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+
+.analysis__nav [mat-list-item] {
+  --mat-list-list-item-container-shape: 999px;
+  --mat-list-list-item-one-line-container-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--app-border);
+}
+
+.analysis__nav [mat-list-item][activated] {
+  border-color: transparent;
+}
+
 .analysis__nav-label {
   flex: 1;
 }
