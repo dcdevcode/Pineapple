@@ -26,6 +26,7 @@ from pineapple.analysis.parsers.safari import (
     parse_safari_bookmarks,
     parse_safari_history,
 )
+from pineapple.analysis.parsers.voicemail import parse_voicemail
 from pineapple.analysis.parsers.whatsapp import parse_whatsapp
 from pineapple.analysis.schema import initialize
 
@@ -185,6 +186,23 @@ def test_parse_calendar_joins_calendar_location_and_invitees(
     assert rows[1]["invitees"] is None
 
 
+def test_parse_voicemail_reads_caller_duration_and_trashed(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_voicemail(
+        _source(backup, "HomeDomain", "Library/Voicemail/voicemail.db"), conn
+    )
+
+    assert written == 2
+    rows = conn.execute("SELECT * FROM voicemail ORDER BY rowid").fetchall()
+    assert rows[0]["sender"] == "+15551234567"
+    assert rows[0]["duration_seconds"] == 23
+    assert rows[0]["trashed"] == 0
+    assert rows[0]["transcript"] == "Call me back"
+    assert rows[0]["received_utc"].startswith("20")
+    assert rows[1]["trashed"] == 1
+
+
 def test_parse_calls_maps_direction_and_service(
     conn: sqlite3.Connection, backup: Path
 ) -> None:
@@ -228,6 +246,7 @@ def test_parse_contacts_flattens_multivalues(
         parse_notes,
         parse_photos,
         parse_calendar,
+        parse_voicemail,
         parse_calls,
         parse_contacts,
         parse_safari_history,

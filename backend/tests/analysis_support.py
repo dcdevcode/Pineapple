@@ -274,6 +274,20 @@ INSERT INTO Participant VALUES (2, 1, 'grace@example.com', NULL);
     )
 
 
+def _voicemail(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE voicemail (
+    ROWID INTEGER PRIMARY KEY, sender TEXT, date INTEGER, duration INTEGER,
+    trashed_date INTEGER, transcription TEXT
+);
+INSERT INTO voicemail VALUES (1, '+15551234567', 1600000000, 23, 0, 'Call me back');
+INSERT INTO voicemail VALUES (2, '+15559998888', 1600100000, 8, 1600200000, NULL);
+        """,
+    )
+
+
 def _address_book(path: Path) -> None:
     _script(
         path,
@@ -310,6 +324,7 @@ _SOURCES = (
     _SourceDb("AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite", _note_store),
     _SourceDb("CameraRollDomain", "Media/PhotoData/Photos.sqlite", _photos),
     _SourceDb("HomeDomain", "Library/Calendar/Calendar.sqlitedb", _calendar),
+    _SourceDb("HomeDomain", "Library/Voicemail/voicemail.db", _voicemail),
     _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
     _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
     _SourceDb(

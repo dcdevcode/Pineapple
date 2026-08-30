@@ -29,6 +29,7 @@ from pineapple.analysis.parsers.safari import (
     parse_safari_bookmarks,
     parse_safari_history,
 )
+from pineapple.analysis.parsers.voicemail import parse_voicemail
 from pineapple.analysis.parsers.whatsapp import parse_whatsapp
 
 ParseFn = Callable[[Path, sqlite3.Connection], int]
@@ -89,6 +90,12 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "HomeDomain",
         parse_calendar,
         count_key="calendar_events",
+    ),
+    ParserSpec(
+        "voicemail",
+        "Library/Voicemail/voicemail.db",
+        "HomeDomain",
+        parse_voicemail,
     ),
     ParserSpec(
         "safari_history",

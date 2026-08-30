@@ -424,6 +424,24 @@ class CaseHandle:
             offset,
         )
 
+    def voicemail(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """One page of voicemails, most recent first; ``search`` matches the
+        caller or the transcript."""
+        where, params = self._search_where(search, "sender", "transcript")
+        return self._page_query(
+            "SELECT rowid, sender, received_utc, duration_seconds, trashed, "
+            f"transcript FROM voicemail {where} ORDER BY received_utc DESC",
+            f"SELECT COUNT(*) FROM voicemail {where}",
+            params,
+            limit,
+            offset,
+        )
+
     # -- backup file access -------------------------------------------------
 
     def files_unlocked(self) -> bool:
