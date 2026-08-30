@@ -23,6 +23,10 @@ from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes
+from pineapple.analysis.parsers.safari import (
+    parse_safari_bookmarks,
+    parse_safari_history,
+)
 
 ParseFn = Callable[[Path, sqlite3.Connection], int]
 
@@ -61,6 +65,19 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "NoteStore.sqlite",
         "AppDomainGroup-group.com.apple.notes",
         parse_notes,
+    ),
+    ParserSpec(
+        "safari_history",
+        "Library/Safari/History.db",
+        "HomeDomain",
+        parse_safari_history,
+        encrypted_only=True,
+    ),
+    ParserSpec(
+        "safari_bookmarks",
+        "Library/Safari/Bookmarks.db",
+        "HomeDomain",
+        parse_safari_bookmarks,
     ),
 ]
 

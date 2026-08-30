@@ -20,6 +20,10 @@ from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes, walk_protobuf_string
+from pineapple.analysis.parsers.safari import (
+    parse_safari_bookmarks,
+    parse_safari_history,
+)
 from pineapple.analysis.schema import initialize
 
 
@@ -76,6 +80,35 @@ def test_parse_notes_reads_title_folder_snippet_and_body(
 def test_walk_protobuf_string_returns_none_off_path() -> None:
     assert walk_protobuf_string(b"\x12\x02hi", (9,)) is None
     assert walk_protobuf_string(b"garbage", (2, 3, 2)) is None
+
+
+def test_parse_safari_history_joins_items_and_visits(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_safari_history(
+        _source(backup, "HomeDomain", "Library/Safari/History.db"), conn
+    )
+
+    assert written == 2
+    rows = conn.execute("SELECT * FROM safari_history ORDER BY visit_utc").fetchall()
+    assert rows[0]["url"] == "https://apple.com/"
+    assert rows[0]["title"] == "Apple"
+    assert rows[0]["visit_count"] == 3
+    assert rows[0]["visit_utc"].startswith("2023-")
+
+
+def test_parse_safari_bookmarks_keeps_leaves_with_folder(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_safari_bookmarks(
+        _source(backup, "HomeDomain", "Library/Safari/Bookmarks.db"), conn
+    )
+
+    assert written == 1
+    row = conn.execute("SELECT * FROM safari_bookmarks").fetchone()
+    assert row["title"] == "Apple"
+    assert row["url"] == "https://apple.com/"
+    assert row["folder"] == "Favorites"
 
 
 def test_parse_calls_maps_direction_and_service(

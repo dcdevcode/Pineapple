@@ -160,6 +160,36 @@ VALUES (2, 'Shopping list', 'Shopping list: pineapples', 1, 700000000.0, 7000005
         conn.close()
 
 
+def _safari_history(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE history_items (id INTEGER PRIMARY KEY, url TEXT, visit_count INTEGER);
+CREATE TABLE history_visits (
+    id INTEGER PRIMARY KEY, history_item INTEGER, visit_time REAL, title TEXT
+);
+INSERT INTO history_items VALUES (1, 'https://apple.com/', 3);
+INSERT INTO history_items VALUES (2, 'https://example.com/news', 1);
+INSERT INTO history_visits VALUES (1, 1, 700000000.0, 'Apple');
+INSERT INTO history_visits VALUES (2, 2, 700000300.0, 'Example News');
+        """,
+    )
+
+
+def _safari_bookmarks(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE bookmarks (
+    id INTEGER PRIMARY KEY, parent INTEGER, type INTEGER, title TEXT, url TEXT
+);
+INSERT INTO bookmarks VALUES (1, NULL, 0, 'Favorites', NULL);
+INSERT INTO bookmarks VALUES (2, 1, 1, 'Apple', 'https://apple.com/');
+INSERT INTO bookmarks VALUES (3, 1, 0, 'Empty folder', NULL);
+        """,
+    )
+
+
 def _call_history(path: Path) -> None:
     _script(
         path,
@@ -209,6 +239,8 @@ _SOURCES = (
     ),
     _SourceDb("HomeDomain", "Library/AddressBook/AddressBook.sqlitedb", _address_book),
     _SourceDb("AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite", _note_store),
+    _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
+    _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
 )
 
 UDID = "00008110-000A1B2C3D4E001E"
