@@ -1,0 +1,16 @@
+.files {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  gap: 12px;
+}
+
+.files__domain {
+  width: 280px;
+}
+
+.files__table {
+  flex: 1;
+  min-height: 0;
+}

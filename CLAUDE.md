@@ -46,7 +46,7 @@ inspects Apple devices connected over USB.
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
 | `frontend/src/app/settings/` | Settings: floating gear (`SettingsButton`) opens `SettingsDialog` (nav-rail shell); each section is its own component (`ThemeSettings`). `ThemeService` owns the light/dark/system preference. |
-| `frontend/src/app/analysis/` | Analysis tab: browses a parsed `.pineapple` case. Backend is done; the Angular UI is not built yet. |
+| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` sections + the generic `ArtifactTable` for apps / messages / calls / contacts). |
 | `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
 | `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / test / build) on every push and PR. |
 
@@ -185,6 +185,18 @@ buttons, emoji, purple, glassmorphism).
   `read_backup_progress()` every 500ms into a `progress` signal until the run
   stops. While a phase in `RUNNING_PHASES` is active the dialog is `disableClose`
   — only the explicit Cancel button stops the acquisition.
+- frontend `AnalysisService` / `AnalysisDialog` / Analysis tab: the dialog steps
+  pick (native `.pineapple` picker → `analysis_peek`) → configure (device facts,
+  a name prefilled with the serial, a password field only when encrypted) →
+  native folder picker → progress (`disableClose` while running). `AnalysisService`
+  polls `read_analysis_progress()` every 500ms and, on `done`, calls `open_case`
+  so the tab flips to the browser; `summary()` non-null is what the `Analysis`
+  component switches on (launcher vs browser). The browser is a nav-rail
+  (`Overview`, `Apps`, `Files`, `Messages`, `Calls`, `Contacts`). `ArtifactTable`
+  is a generic `mat-table` + `mat-paginator` that owns its fetch loop; the
+  service's query wrappers unwrap the `{ok, result}` envelope and throw on
+  `{ok:false}`. Re-opening a case is manual (the launcher's "Open existing
+  analysis"); nothing is persisted locally. Idle no-op without the bridge.
 
 ## Git workflow
 

@@ -1,0 +1,110 @@
+<div class="dialog">
+  <h2 class="dialog__title">New analysis</h2>
+
+  @switch (step()) {
+    @case ('pick') {
+      <div class="dialog__body">
+        <p class="dialog__text">
+          Choose a <code>.pineapple</code> image to parse. It is not modified — the analysis is
+          written to a separate case folder you pick next.
+        </p>
+        @if (pickError()) {
+          <p class="dialog__error">{{ pickError() }}</p>
+        }
+      </div>
+      <div class="dialog__actions">
+        <button matButton type="button" (click)="close()">Cancel</button>
+        <button matButton="filled" type="button" [disabled]="busy()" (click)="chooseFile()">
+          {{ busy() ? 'Reading…' : 'Choose .pineapple file' }}
+        </button>
+      </div>
+    }
+
+    @case ('configure') {
+      <div class="dialog__body">
+        <dl class="dialog__facts">
+          <div>
+            <dt>Device</dt>
+            <dd>{{ deviceLine() || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Encrypted</dt>
+            <dd>{{ encrypted() ? 'Yes' : 'No' }}</dd>
+          </div>
+        </dl>
+
+        <mat-form-field appearance="outline" class="dialog__field">
+          <mat-label>Analysis name</mat-label>
+          <input matInput [ngModel]="title()" (ngModelChange)="title.set($event)" />
+          <mat-hint>Used for the case's <code>.json</code> file. Defaults to the serial.</mat-hint>
+        </mat-form-field>
+
+        @if (encrypted()) {
+          <mat-form-field appearance="outline" class="dialog__field">
+            <mat-label>Backup password</mat-label>
+            <input
+              matInput
+              [type]="showPassword() ? 'text' : 'password'"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+            />
+            <button matButton matSuffix type="button" (click)="toggleShowPassword()">
+              {{ showPassword() ? 'Hide' : 'Show' }}
+            </button>
+          </mat-form-field>
+        }
+
+        @if (startError()) {
+          <p class="dialog__error">{{ startError() }}</p>
+        }
+      </div>
+      <div class="dialog__actions">
+        <button matButton type="button" [disabled]="busy()" (click)="close()">Cancel</button>
+        <button matButton="filled" type="button" [disabled]="!canStart()" (click)="start()">
+          {{ busy() ? 'Working…' : 'Choose folder & start' }}
+        </button>
+      </div>
+    }
+
+    @case ('progress') {
+      <div class="dialog__body">
+        <p class="dialog__phase">{{ phaseText() }}</p>
+        <mat-progress-bar
+          [mode]="progress().phase === 'extracting' ? 'determinate' : 'indeterminate'"
+          [value]="progress().percent"
+        />
+        @if (progress().phase === 'extracting') {
+          <p class="dialog__percent">{{ percentText() }}</p>
+        }
+        @if (progress().note) {
+          <p class="dialog__text">{{ progress().note }}</p>
+        }
+      </div>
+      <div class="dialog__actions">
+        <button matButton type="button" (click)="cancelRun()" [disabled]="!isRunning()">
+          Cancel analysis
+        </button>
+      </div>
+    }
+
+    @case ('result') {
+      <div class="dialog__body">
+        <p class="dialog__phase">{{ phaseText() }}</p>
+        @if (progress().error) {
+          <p class="dialog__error">{{ progress().error }}</p>
+        }
+        @if (progress().skipped.length) {
+          <p class="dialog__text">Some artifacts were skipped:</p>
+          <ul class="dialog__skipped">
+            @for (note of progress().skipped; track note) {
+              <li>{{ note }}</li>
+            }
+          </ul>
+        }
+      </div>
+      <div class="dialog__actions">
+        <button matButton="filled" type="button" (click)="close()">Close</button>
+      </div>
+    }
+  }
+</div>

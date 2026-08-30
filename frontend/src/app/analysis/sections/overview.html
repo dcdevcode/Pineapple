@@ -1,0 +1,46 @@
+<div class="overview">
+  <section class="overview__block">
+    <h3 class="overview__heading">Device</h3>
+    <dl class="overview__facts">
+      @for (fact of deviceFacts(); track fact.label) {
+        <div class="overview__row">
+          <dt>{{ fact.label }}</dt>
+          <dd>{{ fact.value }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  <section class="overview__block">
+    <h3 class="overview__heading">Parse</h3>
+    <p class="overview__status">Status: {{ parseStatus() }}</p>
+    <dl class="overview__facts">
+      @for (fact of counts(); track fact.label) {
+        <div class="overview__row">
+          <dt>{{ fact.label }}</dt>
+          <dd>{{ fact.value }}</dd>
+        </div>
+      }
+    </dl>
+    @if (skipped().length) {
+      <p class="overview__subheading">Skipped</p>
+      <ul class="overview__skipped">
+        @for (note of skipped(); track note) {
+          <li>{{ note }}</li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="overview__block">
+    <h3 class="overview__heading">Source</h3>
+    <dl class="overview__facts">
+      @for (fact of source(); track fact.label) {
+        <div class="overview__row">
+          <dt>{{ fact.label }}</dt>
+          <dd class="overview__mono">{{ fact.value }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+</div>

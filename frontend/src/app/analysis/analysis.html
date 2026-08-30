@@ -1,2 +1,77 @@
-<!-- Analysis tab: intentionally empty for now. -->
-<section class="analysis"></section>
+@if (summary(); as s) {
+  <div class="analysis analysis--browser">
+    <header class="analysis__header">
+      <div class="analysis__heading">
+        <h2 class="analysis__title">{{ s.title }}</h2>
+        <p class="analysis__device">{{ deviceLine() }}</p>
+      </div>
+      <button matButton type="button" (click)="close()">Close analysis</button>
+    </header>
+
+    <div class="analysis__body">
+      <nav class="analysis__nav">
+        <mat-nav-list>
+          @for (section of sections; track section.id) {
+            <a mat-list-item [activated]="active() === section.id" (click)="active.set(section.id)">
+              <span class="analysis__nav-label">{{ section.label }}</span>
+              @if (count(section.id) !== null) {
+                <span class="analysis__count">{{ count(section.id) }}</span>
+              }
+            </a>
+          }
+        </mat-nav-list>
+      </nav>
+
+      <section class="analysis__content">
+        @switch (active()) {
+          @case ('overview') {
+            <app-analysis-overview [summary]="s" />
+          }
+          @case ('apps') {
+            <app-artifact-table [columns]="appColumns" [fetchPage]="fetchApps" />
+          }
+          @case ('files') {
+            <app-files-section />
+          }
+          @case ('messages') {
+            <app-artifact-table
+              [columns]="messageColumns"
+              [fetchPage]="fetchMessages"
+              [searchable]="true"
+            />
+          }
+          @case ('calls') {
+            <app-artifact-table [columns]="callColumns" [fetchPage]="fetchCalls" />
+          }
+          @case ('contacts') {
+            <app-artifact-table
+              [columns]="contactColumns"
+              [fetchPage]="fetchContacts"
+              [searchable]="true"
+            />
+          }
+        }
+      </section>
+    </div>
+  </div>
+} @else {
+  <div class="analysis analysis--launcher">
+    <div class="analysis__launcher-card">
+      <h2 class="analysis__title">Analysis</h2>
+      <p class="analysis__lead">
+        Open a <code>.pineapple</code> image to inspect a device's data offline.
+      </p>
+      <div class="analysis__actions">
+        <button matButton="filled" type="button" [disabled]="busy()" (click)="newAnalysis()">
+          New analysis
+        </button>
+        <button matButton type="button" [disabled]="busy()" (click)="openExisting()">
+          Open existing analysis
+        </button>
+      </div>
+      @if (launcherError()) {
+        <p class="analysis__error">{{ launcherError() }}</p>
+      }
+    </div>
+  </div>
+}

@@ -1,0 +1,19 @@
+<div class="files">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="files__domain">
+    <mat-label>Domain</mat-label>
+    <mat-select [ngModel]="domain()" (ngModelChange)="domain.set($event)">
+      <mat-option value="">All domains</mat-option>
+      @for (item of domains(); track item.domain) {
+        <mat-option [value]="item.domain">{{ item.domain }} ({{ item.count }})</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <app-artifact-table
+    class="files__table"
+    [columns]="columns"
+    [fetchPage]="fetch"
+    [searchable]="true"
+    [scope]="domain()"
+  />
+</div>

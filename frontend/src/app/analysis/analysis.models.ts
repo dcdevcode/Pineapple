@@ -1,0 +1,167 @@
+/** Types mirroring the `analysis_*` bridge on the Python `Api`. */
+
+/** Phases the backend `AnalysisRun` moves through, from `runner.py`. */
+export type AnalysisPhase =
+  | 'idle'
+  | 'extracting'
+  | 'opening'
+  | 'indexing'
+  | 'parsing'
+  | 'writing_descriptor'
+  | 'done'
+  | 'error'
+  | 'cancelled';
+
+/** Phases where the parse is still working and the dialog must stay open. */
+export const RUNNING_PHASES: readonly AnalysisPhase[] = [
+  'extracting',
+  'opening',
+  'indexing',
+  'parsing',
+  'writing_descriptor',
+];
+
+/** Snapshot from `read_analysis_progress`. */
+export interface AnalysisProgress {
+  phase: AnalysisPhase;
+  percent: number;
+  note: string | null;
+  error: string | null;
+  title: string | null;
+  case_path: string | null;
+  counts: Record<string, number>;
+  skipped: string[];
+  running: boolean;
+}
+
+/** Device facts — `peek` uses `name`, a parsed `backup_info` row uses
+ *  `device_name`; the Overview view reads whichever is present. */
+export interface DeviceFacts {
+  name?: string | null;
+  device_name?: string | null;
+  product_type?: string | null;
+  product_name?: string | null;
+  product_version?: string | null;
+  build_version?: string | null;
+  serial?: string | null;
+  udid?: string | null;
+  last_backup_date?: string | null;
+  is_encrypted?: boolean | number | null;
+  was_passcode_set?: boolean | number | null;
+}
+
+export interface CaseSource {
+  path?: string;
+  sha256?: string;
+  is_encrypted?: boolean;
+}
+
+export interface ParseReport {
+  status?: string;
+  finished_at?: string;
+  counts?: Record<string, number>;
+  skipped?: string[];
+}
+
+export interface CaseDescriptor {
+  title: string;
+  created_at: string;
+  tool_version: string;
+  schema_version: number;
+  source: CaseSource;
+  device: DeviceFacts;
+  parse: ParseReport;
+}
+
+export interface CaseSummary {
+  title: string;
+  device: DeviceFacts;
+  source: CaseSource;
+  parse: ParseReport;
+  counts: Record<string, number>;
+}
+
+/** One page of a paged `analysis_*` query. */
+export interface Page<T> {
+  rows: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface AppRow {
+  bundle_id: string;
+  name: string | null;
+  version: string | null;
+}
+
+export interface FileRow {
+  file_id: string;
+  domain: string;
+  relative_path: string;
+  is_dir: number;
+  size: number;
+  mtime: string | null;
+  btime: string | null;
+  target: string | null;
+}
+
+export interface MessageRow {
+  rowid: number;
+  chat_id: number | null;
+  address: string | null;
+  service: string | null;
+  is_from_me: number;
+  date_utc: string | null;
+  text: string | null;
+  attachments: number;
+}
+
+export interface CallRow {
+  rowid: number;
+  address: string | null;
+  service: string | null;
+  direction: string | null;
+  date_utc: string | null;
+  duration_seconds: number;
+}
+
+export interface ContactRow {
+  rowid: number;
+  first: string | null;
+  last: string | null;
+  organization: string | null;
+  phones: string | null;
+  emails: string | null;
+}
+
+export interface DomainCount {
+  domain: string;
+  count: number;
+}
+
+/** Result of `choose_pineapple_file` / `choose_case_folder`. */
+export type PathResult = { ok: true; path: string } | { ok: false };
+
+/** Result of `analysis_peek`. */
+export type PeekResult =
+  | { ok: true; encrypted: boolean; device: DeviceFacts; default_title: string }
+  | { ok: false; error: string };
+
+/** Result of `start_analysis`. */
+export type StartResult = { ok: true } | { ok: false; error: string };
+
+/** Result of `open_case`. */
+export type OpenCaseResult =
+  { ok: true; descriptor: CaseDescriptor; summary: CaseSummary } | { ok: false; error: string };
+
+/** Result of every `analysis_*` read query. */
+export type QueryResult<T> = { ok: true; result: T } | { ok: false; error: string };
+
+/** Paging + optional search shared by the artifact queries. */
+export interface PageQuery {
+  limit: number;
+  offset: number;
+  search?: string;
+  domain?: string;
+}

@@ -1,0 +1,92 @@
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--app-surface);
+}
+
+.dialog__title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  color: var(--app-text);
+}
+
+.dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialog__text {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  color: var(--app-text);
+}
+
+.dialog__facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 20px;
+}
+
+.dialog__facts div {
+  display: contents;
+}
+
+.dialog__facts dt {
+  color: var(--app-text-muted);
+  font: var(--mat-sys-body-medium);
+}
+
+.dialog__facts dd {
+  margin: 0;
+  color: var(--app-text);
+  font: var(--mat-sys-body-medium);
+  overflow-wrap: anywhere;
+}
+
+.dialog__field {
+  width: 100%;
+}
+
+.dialog__phase {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+  color: var(--app-text);
+}
+
+.dialog__percent {
+  margin: 0;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+}
+
+.dialog__error {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-error);
+  overflow-wrap: anywhere;
+}
+
+.dialog__skipped {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
