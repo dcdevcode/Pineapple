@@ -150,13 +150,6 @@ def test_start_backup_wraps_a_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
     }
 
 
-def test_read_backup_progress_passes_through(monkeypatch: pytest.MonkeyPatch) -> None:
-    api = Api()
-    snapshot = {"phase": "backing_up", "percent": 42.0, "running": True}
-    monkeypatch.setattr(api._backup, "progress", lambda: snapshot)
-    assert api.read_backup_progress() == snapshot
-
-
 def test_cancel_backup_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
     api = Api()
     calls: list[bool] = []

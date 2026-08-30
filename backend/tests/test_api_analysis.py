@@ -117,6 +117,24 @@ def test_new_artifact_queries_answer_from_the_case(image: Path, tmp_path: Path) 
     assert scoped["result"]["total"] == 2
 
 
+def test_apps_domains_calls_contacts_queries(image: Path, tmp_path: Path) -> None:
+    api = Api()
+    _run_to_done(api, image, tmp_path / "case")
+
+    apps = api.analysis_apps()
+    assert apps["ok"] is True
+    assert any(row["bundle_id"] == "com.example.app" for row in apps["result"])
+
+    domains = api.analysis_domains()
+    assert {d["domain"] for d in domains["result"]} >= {"HomeDomain"}
+    assert all(d["count"] >= 1 for d in domains["result"])
+
+    assert api.analysis_calls()["result"]["total"] == 3
+    contacts = api.analysis_contacts(search="Ada")
+    assert contacts["result"]["total"] == 1
+    assert contacts["result"]["rows"][0]["first"] == "Ada"
+
+
 def test_preview_and_extract_a_file(
     image: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

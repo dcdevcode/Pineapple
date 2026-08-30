@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -19,8 +20,9 @@ from analysis_support import (
     make_pineapple,
 )
 from pineapple.analysis import reader as reader_module
+from pineapple.analysis import runner as runner_module
 from pineapple.analysis.case import load_case
-from pineapple.analysis.runner import AnalysisRun
+from pineapple.analysis.runner import AnalysisRun, _Cancelled
 from pineapple.session import DeviceSession
 
 
@@ -150,6 +152,35 @@ def test_absent_calls_db_is_explained_for_an_unencrypted_backup(
     assert state["counts"]["messages"] == 3
     calls_note = next(n for n in state["skipped"] if n.startswith("calls:"))
     assert "encrypted" in calls_note
+
+
+def test_cancel_mid_run_rolls_back_the_partial_case(
+    device_session: DeviceSession, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    image = _image(tmp_path)
+    case_dir = tmp_path / "case"
+    run = AnalysisRun(device_session)
+
+    reached_indexing = threading.Event()
+
+    def blocking_index_files(manifest: object, conn: object) -> int:
+        # analysis.db has been created + schema-initialised by this point.
+        reached_indexing.set()
+        run._cancelled.wait(timeout=5)
+        raise _Cancelled
+
+    monkeypatch.setattr(runner_module, "index_files", blocking_index_files)
+
+    run.start(str(image), str(case_dir), "", "")
+    assert reached_indexing.wait(timeout=5)
+    assert (case_dir / "analysis.db").exists()  # created, about to be rolled back
+
+    run.cancel()
+    state = _wait(run, {"cancelled", "error", "done"})
+
+    assert state["phase"] == "cancelled", state
+    assert not (case_dir / "analysis.db").exists()
+    assert not list(case_dir.glob("*.json"))
 
 
 def test_refuses_a_folder_that_already_holds_an_analysis(

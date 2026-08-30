@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import datetime as dt
 import plistlib
 import shutil
 import sqlite3
@@ -17,7 +19,7 @@ from analysis_support import (
     build_backup,
     file_id,
 )
-from pineapple.analysis.case import load_case
+from pineapple.analysis.case import _image_mime, _json_safe, _sniff, load_case
 from pineapple.analysis.descriptor import (
     CaseDescriptor,
     descriptor_path,
@@ -152,6 +154,48 @@ def test_extract_file_refuses_a_directory_or_symlink(case_dir: Path) -> None:
             )
     finally:
         handle.close()
+
+
+def test_image_mime_recognises_signatures_and_heic() -> None:
+    assert _image_mime(b"\x89PNG\r\n\x1a\n....") == "image/png"
+    assert _image_mime(b"\xff\xd8\xff\xe0junk") == "image/jpeg"
+    assert _image_mime(b"GIF89a...") == "image/gif"
+    assert _image_mime(b"\x00\x00\x00\x18ftypheic....") == "image/heic"
+    assert _image_mime(b"just some text") is None
+
+
+def test_sniff_classifies_image_plist_text_and_binary() -> None:
+    png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 8
+    image = _sniff(png, truncated=False)
+    assert image["kind"] == "image"
+    assert image["mime"] == "image/png"
+    assert base64.b64decode(image["data_base64"]) == png
+
+    plist = plistlib.dumps({"a": 1}, fmt=plistlib.FMT_BINARY)
+    assert _sniff(plist, truncated=False) == {"kind": "plist", "json": {"a": 1}}
+    # A plist is only decoded when the payload is whole.
+    assert _sniff(plist, truncated=True)["kind"] == "binary"
+
+    text = _sniff("hola señor".encode(), truncated=False)
+    assert text == {"kind": "text", "text": "hola señor", "truncated": False}
+
+    binary = _sniff(b"\xff\xfe\x00\x01\x02", truncated=False)
+    assert binary == {"kind": "binary", "size": 5, "truncated": False}
+
+
+def test_json_safe_coerces_bytes_dates_and_uids() -> None:
+    value = {
+        "blob": b"\x01\x02",
+        "when": dt.datetime(2026, 1, 2, 3, 4, 5),
+        "ref": plistlib.UID(7),
+        "nested": [b"ab", 1],
+    }
+    assert _json_safe(value) == {
+        "blob": base64.b64encode(b"\x01\x02").decode("ascii"),
+        "when": "2026-01-02T03:04:05",
+        "ref": 7,
+        "nested": [base64.b64encode(b"ab").decode("ascii"), 1],
+    }
 
 
 def test_preview_file_classifies_content(case_dir: Path) -> None:

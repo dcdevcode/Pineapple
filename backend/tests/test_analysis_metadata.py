@@ -44,3 +44,39 @@ def test_from_plists_falls_back_to_installed_list_and_status_date() -> None:
     assert metadata.last_backup_date == "2026-01-01T00:00:00+00:00"
     assert metadata.is_encrypted is False
     assert metadata.default_title == "analysis"
+
+
+def test_from_plists_reads_device_fields_from_the_lockdown_block() -> None:
+    """Real backups often carry these only under Manifest.plist's Lockdown dict."""
+    manifest = {
+        "Lockdown": {
+            "DeviceName": "Nested iPhone",
+            "ProductType": "iPhone15,2",
+            "ProductVersion": "18.0",
+            "BuildVersion": "22A100",
+            "SerialNumber": "LOCK123",
+        }
+    }
+
+    metadata = from_plists({"Unique Identifier": "udid-x"}, manifest, {})
+
+    assert metadata.device_name == "Nested iPhone"
+    assert metadata.product_type == "iPhone15,2"
+    assert metadata.product_version == "18.0"
+    assert metadata.build_version == "22A100"
+    assert metadata.serial == "LOCK123"
+    assert metadata.udid == "udid-x"
+
+
+def test_device_dict_is_json_friendly_and_omits_encryption() -> None:
+    metadata = from_plists(
+        {"Device Name": "d", "Serial Number": "s", "Target Identifier": "u"},
+        {"IsEncrypted": True},
+        {},
+    )
+
+    facts = metadata.device_dict()
+    assert facts["name"] == "d"
+    assert facts["serial"] == "s"
+    assert facts["udid"] == "u"
+    assert "is_encrypted" not in facts  # encryption is reported separately
