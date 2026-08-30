@@ -36,8 +36,11 @@ class Api:
         self._backup = DeviceBackup(session)
         self._analysis = AnalysisRun(session)
         self._case: CaseHandle | None = None
-        # Decryption key for the open case's backup files. In memory only.
+        # Decryption key for the open case's backup files, and the folder it
+        # belongs to. In memory only; kept so a just-analysed encrypted case
+        # does not prompt again when the tab opens its browser.
         self._case_password: str | None = None
+        self._case_dir: Path | None = None
 
     def connected_device(self) -> dict[str, Any]:
         """The single-device view the UI needs: ``{"status": "none"}``,
@@ -214,6 +217,7 @@ class Api:
             return {"ok": False, "error": str(error)}
         # Keep the key so the finished case can read its own backup files.
         self._case_password = password or None
+        self._case_dir = Path(case_dir)
         return {"ok": True}
 
     def read_analysis_progress(self) -> dict[str, Any]:
@@ -239,9 +243,15 @@ class Api:
         if self._case is not None:
             self._case.close()
             self._case = None
-        self._case_password = password or None
+        target = Path(case_dir)
+        if password:
+            self._case_password = password
+        elif self._case_dir != target:
+            # A different case than the one whose key we hold -- drop the stale key.
+            self._case_password = None
+        self._case_dir = target
         try:
-            self._case = load_case(case_dir, self._case_password)
+            self._case = load_case(str(target), self._case_password)
         except AnalysisError as error:
             return {"ok": False, "error": str(error)}
         return {

@@ -163,6 +163,25 @@ def test_unlock_rejects_a_wrong_key_for_an_encrypted_case(
     assert api.analysis_unlock(FakeEncryptedBackup.PASSWORD)["ok"] is True
 
 
+def test_reopening_the_just_analysed_encrypted_case_keeps_the_key(
+    tmp_path: Path,
+) -> None:
+    root = build_backup(tmp_path / "src", encrypted=True)
+    image = make_pineapple(root, tmp_path / "image.pineapple")
+    case_dir = tmp_path / "case"
+    api = Api()
+    _run_to_done(api, image, case_dir, password=FakeEncryptedBackup.PASSWORD)
+
+    # The tab re-opens the case with no password -- the retained key must hold.
+    reopened = api.open_case(str(case_dir))
+    assert reopened["ok"] is True
+    assert reopened["summary"]["files_unlocked"] is True
+
+    # Opening a different folder with no password drops the stale key.
+    api.open_case(str(tmp_path / "not-a-case"))
+    assert api._case_password is None
+
+
 def test_start_analysis_wraps_a_refusal() -> None:
     result = Api().start_analysis("/no/such.pineapple", "/tmp/case", "", "")
     assert result["ok"] is False
