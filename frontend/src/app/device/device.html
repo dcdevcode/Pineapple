@@ -44,7 +44,12 @@
       }
 
       <div class="device__actions">
-        <button matButton="filled" type="button" [disabled]="s.status !== 'ready'">
+        <button
+          matButton="filled"
+          type="button"
+          [disabled]="s.status !== 'ready'"
+          (click)="createImage()"
+        >
           Create Pineapple Logical Image
         </button>
         <button matButton type="button" [disabled]="s.status !== 'ready'" (click)="openSyslog()">

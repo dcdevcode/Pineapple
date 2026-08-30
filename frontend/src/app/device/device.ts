@@ -5,6 +5,7 @@ import { DeviceService } from './device.service';
 import type { DeviceInfo } from './device.models';
 import { PhoneOutline } from './phone-outline/phone-outline';
 import { SyslogDialog, type SyslogDialogData } from '../syslog/syslog-dialog';
+import { BackupDialog, type BackupDialogData } from '../backup/backup-dialog';
 
 type FieldValue = string | number | boolean;
 
@@ -55,6 +56,18 @@ export class Device {
     { key: 'TimeZone', label: 'Time Zone' },
     { key: 'PasswordProtected', label: 'Passcode Set', format: formatBool },
   ];
+
+  /** Open the logical acquisition dialog for the ready device. */
+  createImage(): void {
+    const current = this.state();
+    if (current.status !== 'ready') return;
+    this.dialog.open<BackupDialog, BackupDialogData>(BackupDialog, {
+      data: { deviceName: current.name },
+      width: 'min(560px, 92vw)',
+      maxWidth: '92vw',
+      autoFocus: false,
+    });
+  }
 
   /** Open the live syslog viewer for the ready device. */
   openSyslog(): void {

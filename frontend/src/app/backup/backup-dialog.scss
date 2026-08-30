@@ -1,0 +1,83 @@
+.backup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--app-surface);
+}
+
+.backup__title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  color: var(--app-text);
+}
+
+.backup__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.backup__text {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  color: var(--app-text);
+}
+
+.backup__list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font: var(--mat-sys-body-medium);
+  color: var(--app-text-muted);
+}
+
+.backup__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.backup__note {
+  display: block;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+  white-space: normal;
+}
+
+.backup__field {
+  width: 100%;
+}
+
+.backup__phase {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+  color: var(--app-text);
+}
+
+.backup__percent {
+  margin: 0;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+}
+
+.backup__error {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-error);
+  overflow-wrap: anywhere;
+}
+
+.backup__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}

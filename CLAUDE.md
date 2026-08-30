@@ -34,13 +34,15 @@ inspects Apple devices connected over USB.
 | `backend/src/pineapple/devices.py` | Async USB device access (`connected_devices`, `single_device_udid`, `get_device_info`, `INFO_FIELDS`). |
 | `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
 | `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
-| `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog`, bound to `window.pywebview.api`. |
+| `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
+| `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
 | `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. |
 | `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
+| `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
 | `frontend/src/app/settings/` | Settings: floating gear (`SettingsButton`) opens `SettingsDialog` (nav-rail shell); each section is its own component (`ThemeSettings`). `ThemeService` owns the light/dark/system preference. |
 | `frontend/src/app/analysis/` | Analysis tab: intentionally empty for now. |
 | `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
@@ -107,7 +109,9 @@ buttons, emoji, purple, glassmorphism).
   `{"ok": True, "info": ...}` / `{"ok": False, "error": ...}` envelope so the
   frontend can tell "needs trust" from "ready". `start_syslog` / `read_syslog` /
   `stop_syslog` drive one `SyslogStream`; `save_syslog` writes captured text via
-  a native save dialog.
+  a native save dialog. `backup_preflight` / `choose_backup_path` (native save
+  dialog) / `start_backup` / `read_backup_progress` / `cancel_backup` drive one
+  `DeviceBackup`.
 - `session.py`: one `asyncio` loop on a daemon thread, shared by streaming
   features. `run(coro)` blocks for a result; `spawn(coro)` / `cancel(task)`
   manage a background task from another thread. Deliberately minimal — it is the
@@ -120,6 +124,16 @@ buttons, emoji, purple, glassmorphism).
   op lock and `stop` blocks until the reader has closed its connections
   (`async with OsTraceService`) — leaking that socket makes the device refuse
   the next stream, so reopening the viewer would silently fail.
+- `backup.py`: `DeviceBackup.start()` spawns a full `Mobilebackup2Service.backup`
+  on `session` into a temp staging dir, then packs `staging/<udid>/` into the
+  chosen path as an **uncompressed** (`ZIP_STORED`) zip named `*.pineapple`.
+  Encryption is a *device* setting: for an encrypted backup on a device that does
+  not already encrypt, it calls `change_password(new=…)` first and always
+  restores the original state (`change_password(old=…)`) afterwards — on success,
+  failure and cancel alike (shielded so a cancel still runs it). `progress()`
+  reports `phase` (`preparing` / `backing_up` / `packaging` /
+  `restoring_encryption` / `done` / `error` / `cancelled`), `percent`, `note`,
+  `output_path`. Same "Trust this computer" requirement as `get_device_info`.
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.
@@ -132,6 +146,12 @@ buttons, emoji, purple, glassmorphism).
   stops when the backend reports the stream ended. `SyslogDialog` adds
   text/process filters, pause, clear and export over a `cdk-virtual-scroll`
   list. Same idle no-op without the bridge.
+- frontend `BackupService` / `BackupDialog`: the dialog steps confirm → options
+  (encrypted / unencrypted, or the existing password when the device already
+  encrypts) → native path picker → progress. `BackupService` polls
+  `read_backup_progress()` every 500ms into a `progress` signal until the run
+  stops. While a phase in `RUNNING_PHASES` is active the dialog is `disableClose`
+  — only the explicit Cancel button stops the acquisition.
 
 ## Git workflow
 

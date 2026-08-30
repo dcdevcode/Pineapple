@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { Device } from './device';
 import { DeviceService } from './device.service';
 import type { DeviceInfo, DeviceState } from './device.models';
@@ -14,12 +15,17 @@ const SAMPLE_INFO: DeviceInfo = {
 
 describe('Device', () => {
   const state = signal<DeviceState>({ status: 'idle' });
+  const dialog = { open: vi.fn() };
 
   beforeEach(async () => {
     state.set({ status: 'idle' });
+    dialog.open.mockClear();
     await TestBed.configureTestingModule({
       imports: [Device],
-      providers: [{ provide: DeviceService, useValue: { state } }],
+      providers: [
+        { provide: DeviceService, useValue: { state } },
+        { provide: MatDialog, useValue: dialog },
+      ],
     }).compileComponents();
   });
 
@@ -79,6 +85,16 @@ describe('Device', () => {
     const button = el.querySelector('button')!;
     expect(button.textContent?.trim()).toBe('Create Pineapple Logical Image');
     expect(button.disabled).toBe(false);
+  });
+
+  it('opens the acquisition dialog when the image button is clicked', async () => {
+    state.set({ status: 'ready', udid: 'A', name: 'Diego’s iPhone', info: SAMPLE_INFO });
+    const el = await render();
+
+    el.querySelector<HTMLButtonElement>('button')!.click();
+
+    expect(dialog.open).toHaveBeenCalledOnce();
+    expect(dialog.open.mock.calls[0][1]?.data).toEqual({ deviceName: 'Diego’s iPhone' });
   });
 
   it('skips rows for missing fields', async () => {

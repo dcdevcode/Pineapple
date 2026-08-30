@@ -1,0 +1,150 @@
+<div class="backup">
+  <h2 class="backup__title">Create Pineapple Logical Image</h2>
+
+  @switch (step()) {
+    @case ('confirm') {
+      <div class="backup__body">
+        <p class="backup__text">
+          This takes a full backup of <strong>{{ data.deviceName }}</strong> and packages it as a
+          single <code>.pineapple</code> file.
+        </p>
+        <ul class="backup__list">
+          <li>It can take a long time — keep the device unlocked and connected throughout.</li>
+          <li>
+            You need free disk space for the backup and the <code>.pineapple</code> archive (roughly
+            twice the used space on the device).
+          </li>
+        </ul>
+        @if (preflightError()) {
+          <p class="backup__error">{{ preflightError() }}</p>
+        }
+      </div>
+      <div class="backup__actions">
+        <button matButton type="button" (click)="close()">Cancel</button>
+        <button
+          matButton="filled"
+          type="button"
+          [disabled]="willEncrypt() === null && !preflightError()"
+          (click)="toContinue()"
+        >
+          Continue
+        </button>
+      </div>
+    }
+
+    @case ('options') {
+      <div class="backup__body">
+        @if (needsExistingPassword()) {
+          <p class="backup__text">
+            This device already produces <strong>encrypted</strong> backups. Enter its existing
+            backup password to continue — the acquisition cannot proceed without it.
+          </p>
+        } @else {
+          <mat-radio-group
+            class="backup__choices"
+            aria-label="Backup type"
+            [ngModel]="encryptChoice()"
+            (ngModelChange)="encryptChoice.set($event)"
+          >
+            <mat-radio-button value="encrypted">
+              Encrypted backup
+              <span class="backup__note">
+                Full acquisition (keychain, health, app data). Backup encryption will be enabled on
+                the device for this run and switched back off afterwards.
+              </span>
+            </mat-radio-button>
+            <mat-radio-button value="unencrypted">
+              Unencrypted backup
+              <span class="backup__note">
+                The device is not modified, but some data (keychain, health) is excluded.
+              </span>
+            </mat-radio-button>
+          </mat-radio-group>
+        }
+
+        @if (encrypting()) {
+          <mat-form-field appearance="outline" class="backup__field">
+            <mat-label>
+              {{ needsExistingPassword() ? 'Existing backup password' : 'Backup password' }}
+            </mat-label>
+            <input
+              matInput
+              [type]="showPassword() ? 'text' : 'password'"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+            />
+            <button matButton matSuffix type="button" (click)="toggleShowPassword()">
+              {{ showPassword() ? 'Hide' : 'Show' }}
+            </button>
+          </mat-form-field>
+
+          @if (!needsExistingPassword()) {
+            <mat-form-field appearance="outline" class="backup__field">
+              <mat-label>Confirm password</mat-label>
+              <input
+                matInput
+                [type]="showPassword() ? 'text' : 'password'"
+                [ngModel]="passwordConfirm()"
+                (ngModelChange)="passwordConfirm.set($event)"
+              />
+              @if (passwordConfirm().length > 0 && password() !== passwordConfirm()) {
+                <mat-error>Passwords do not match.</mat-error>
+              }
+            </mat-form-field>
+          }
+        }
+
+        @if (startError()) {
+          <p class="backup__error">{{ startError() }}</p>
+        }
+      </div>
+      <div class="backup__actions">
+        <button matButton type="button" [disabled]="busy()" (click)="close()">Cancel</button>
+        <button matButton="filled" type="button" [disabled]="!canSubmit()" (click)="createImage()">
+          {{ busy() ? 'Working…' : 'Choose location & start' }}
+        </button>
+      </div>
+    }
+
+    @case ('progress') {
+      <div class="backup__body">
+        <p class="backup__phase">{{ phaseText() }}</p>
+        <mat-progress-bar
+          [mode]="progress().phase === 'backing_up' ? 'determinate' : 'indeterminate'"
+          [value]="progress().percent"
+        />
+        @if (progress().phase === 'backing_up') {
+          <p class="backup__percent">{{ percentText() }}</p>
+        }
+        @if (progress().note) {
+          <p class="backup__text">{{ progress().note }}</p>
+        }
+      </div>
+      <div class="backup__actions">
+        <button matButton type="button" (click)="cancelRun()" [disabled]="!isRunning()">
+          Cancel acquisition
+        </button>
+      </div>
+    }
+
+    @case ('result') {
+      <div class="backup__body">
+        <p class="backup__phase">{{ phaseText() }}</p>
+        @if (progress().phase === 'done') {
+          <p class="backup__text">
+            Saved to <code>{{ progress().output_path }}</code>
+          </p>
+        }
+        @if (progress().error) {
+          <p class="backup__error">{{ progress().error }}</p>
+        }
+        @if (progress().note) {
+          <p class="backup__text">{{ progress().note }}</p>
+        }
+      </div>
+      <div class="backup__actions">
+        <button matButton="filled" type="button" (click)="close()">Close</button>
+      </div>
+    }
+  }
+</div>
