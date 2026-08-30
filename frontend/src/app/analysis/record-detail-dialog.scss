@@ -1,0 +1,91 @@
+.detail {
+  &__list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  &__row--long {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  &__label {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-body-medium);
+  }
+
+  &__value {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__text {
+    overflow-wrap: anywhere;
+  }
+
+  &__block {
+    margin: 0;
+    padding: 8px 10px;
+    width: 100%;
+    max-height: 320px;
+    overflow: auto;
+    background: var(--app-bg);
+    border-radius: 4px;
+    font: var(--mat-sys-body-medium);
+    font-family: 'Roboto Mono', ui-monospace, monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  &__copy {
+    flex: 0 0 auto;
+  }
+
+  &__empty {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__preview {
+    margin-top: 20px;
+  }
+
+  &__preview-title {
+    margin: 0 0 8px;
+    font: var(--mat-sys-title-small);
+  }
+
+  &__block--preview {
+    max-height: 400px;
+  }
+
+  &__image {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 4px;
+  }
+
+  &__note {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__status {
+    margin-right: auto;
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-body-small);
+    overflow-wrap: anywhere;
+  }
+}

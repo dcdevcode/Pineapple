@@ -1,0 +1,16 @@
+.safari {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  gap: 12px;
+}
+
+.safari__switch {
+  align-self: flex-start;
+}
+
+.safari__table {
+  flex: 1;
+  min-height: 0;
+}

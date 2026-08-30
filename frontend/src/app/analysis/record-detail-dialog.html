@@ -1,0 +1,84 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content class="detail">
+  <dl class="detail__list">
+    @for (field of data.fields; track field.label) {
+      <div class="detail__row" [class.detail__row--long]="field.long">
+        <dt class="detail__label">{{ field.label }}</dt>
+        <dd class="detail__value">
+          @if (field.value) {
+            @if (field.long) {
+              <pre class="detail__block">{{ field.value }}</pre>
+            } @else {
+              <span class="detail__text">{{ field.value }}</span>
+            }
+            <button
+              matButton
+              type="button"
+              class="detail__copy"
+              (click)="copy(field)"
+              [attr.aria-label]="'Copy ' + field.label"
+            >
+              {{ copied() === field.label ? 'Copied' : 'Copy' }}
+            </button>
+          } @else {
+            <span class="detail__empty">—</span>
+          }
+        </dd>
+      </div>
+    }
+  </dl>
+
+  @if (data.preview; as p) {
+    <section class="detail__preview">
+      <h3 class="detail__preview-title">Contents</h3>
+      @switch (p.kind) {
+        @case ('text') {
+          <pre class="detail__block detail__block--preview">{{ p.text }}</pre>
+          @if (p.truncated) {
+            <p class="detail__note">Preview truncated.</p>
+          }
+        }
+        @case ('plist') {
+          <pre class="detail__block detail__block--preview">{{ plistText(p) }}</pre>
+        }
+        @case ('image') {
+          <img class="detail__image" [src]="imageSrc(p)" [alt]="p.name" />
+        }
+        @case ('binary') {
+          <p class="detail__note">Binary file ({{ p.size }} bytes) — no preview.</p>
+        }
+        @case ('unavailable') {
+          <p class="detail__note">
+            @switch (p.reason) {
+              @case ('directory') {
+                This is a folder.
+              }
+              @case ('symlink') {
+                Symlink → {{ p.target }}
+              }
+              @case ('not-in-backup') {
+                The backup does not carry this file's data.
+              }
+              @default {
+                Preview unavailable.
+              }
+            }
+          </p>
+        }
+      }
+    </section>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (extractStatus()) {
+    <span class="detail__status">{{ extractStatus() }}</span>
+  }
+  @if (data.extract) {
+    <button matButton type="button" [disabled]="extracting()" (click)="runExtract()">
+      Extract file…
+    </button>
+  }
+  <button matButton mat-dialog-close type="button">Close</button>
+</mat-dialog-actions>

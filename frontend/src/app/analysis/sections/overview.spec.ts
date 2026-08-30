@@ -14,6 +14,8 @@ const SUMMARY: CaseSummary = {
   source: { path: '/x.pineapple', sha256: 'deadbeef', is_encrypted: true },
   parse: { status: 'done', counts: { messages: 3 }, skipped: ['calls: not present in the backup'] },
   counts: { apps: 1, files: 5, messages: 3, calls: 0, contacts: 2 },
+  is_encrypted: true,
+  files_unlocked: false,
 };
 
 describe('Overview', () => {

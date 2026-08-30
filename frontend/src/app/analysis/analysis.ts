@@ -6,34 +6,42 @@ import { AnalysisService } from './analysis.service';
 import { AnalysisDialog } from './analysis-dialog';
 import { ArtifactTable, type ColumnDef, type FetchPage, type TableRow } from './artifact-table';
 import { FilesSection } from './sections/files-section';
+import { NotesSection } from './sections/notes-section';
 import { Overview } from './sections/overview';
+import { SafariSection } from './sections/safari-section';
+import { WhatsappSection } from './sections/whatsapp-section';
+import { duration, field, localTime, type DetailBuilder } from './detail-fields';
 import type { DeviceFacts, Page, PageQuery } from './analysis.models';
 
-type SectionId = 'overview' | 'apps' | 'files' | 'messages' | 'calls' | 'contacts';
+type SectionId =
+  | 'overview'
+  | 'apps'
+  | 'files'
+  | 'messages'
+  | 'calls'
+  | 'contacts'
+  | 'notes'
+  | 'safari'
+  | 'whatsapp';
 
 interface Section {
   id: SectionId;
   label: string;
 }
 
-function localTime(value: unknown): string {
-  if (typeof value !== 'string' || !value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-}
-
-function duration(seconds: unknown): string {
-  const total = Number(seconds);
-  if (!Number.isFinite(total) || total <= 0) return '0:00';
-  const mins = Math.floor(total / 60);
-  const secs = Math.round(total % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
 /** The Analysis tab: a launcher until a case is open, then the case browser. */
 @Component({
   selector: 'app-analysis',
-  imports: [MatButtonModule, MatListModule, ArtifactTable, FilesSection, Overview],
+  imports: [
+    MatButtonModule,
+    MatListModule,
+    ArtifactTable,
+    FilesSection,
+    NotesSection,
+    Overview,
+    SafariSection,
+    WhatsappSection,
+  ],
   templateUrl: './analysis.html',
   styleUrl: './analysis.scss',
 })
@@ -53,6 +61,9 @@ export class Analysis {
     { id: 'messages', label: 'Messages' },
     { id: 'calls', label: 'Calls' },
     { id: 'contacts', label: 'Contacts' },
+    { id: 'notes', label: 'Notes' },
+    { id: 'safari', label: 'Safari' },
+    { id: 'whatsapp', label: 'WhatsApp' },
   ];
 
   protected readonly deviceLine = computed(() => {
@@ -66,10 +77,32 @@ export class Analysis {
       .join(' · ');
   });
 
+  private readonly countKeys: Partial<Record<SectionId, readonly string[]>> = {
+    apps: ['apps'],
+    files: ['files'],
+    messages: ['messages'],
+    calls: ['calls'],
+    contacts: ['contacts'],
+    notes: ['notes'],
+    safari: ['safari_history', 'safari_bookmarks'],
+    whatsapp: ['whatsapp_messages'],
+  };
+
   protected count(id: SectionId): number | null {
     const counts = this.summary()?.counts ?? {};
-    return id in counts ? counts[id] : null;
+    const keys = this.countKeys[id];
+    if (!keys) return null;
+    const present = keys.filter((k) => k in counts);
+    return present.length ? present.reduce((sum, k) => sum + counts[k], 0) : null;
   }
+
+  // -- detail-dialog titles -----------------------------------------
+
+  protected readonly appTitle = (r: TableRow): string =>
+    String(r['name'] || r['bundle_id'] || 'App');
+  protected readonly addressTitle = (r: TableRow): string => String(r['address'] || 'Record');
+  protected readonly contactTitle = (r: TableRow): string =>
+    [r['first'], r['last']].filter(Boolean).join(' ') || 'Contact';
 
   // -- section table configs ------------------------------------------
 
@@ -82,6 +115,11 @@ export class Analysis {
     const all = await this.analysis.apps();
     return this.slice(all as unknown as TableRow[], q);
   };
+  protected readonly appDetail: DetailBuilder = (r) => [
+    ...field('Name', r['name']),
+    ...field('Bundle ID', r['bundle_id']),
+    ...field('Version', r['version']),
+  ];
 
   protected readonly messageColumns: readonly ColumnDef[] = [
     { key: 'date_utc', label: 'Date', format: (r) => localTime(r['date_utc']) },
@@ -96,6 +134,15 @@ export class Analysis {
   ];
   protected readonly fetchMessages: FetchPage = async (q: PageQuery) =>
     (await this.analysis.messages(q)) as unknown as Page<TableRow>;
+  protected readonly messageDetail: DetailBuilder = (r) => [
+    ...field('Date', localTime(r['date_utc'])),
+    ...field('Contact', r['address']),
+    ...field('Direction', r['is_from_me'] ? 'Sent' : 'Received'),
+    ...field('Service', r['service']),
+    ...field('Chat ID', r['chat_id']),
+    ...field('Attachments', r['attachments']),
+    ...field('Message', r['text'], true),
+  ];
 
   protected readonly callColumns: readonly ColumnDef[] = [
     { key: 'date_utc', label: 'Date', format: (r) => localTime(r['date_utc']) },
@@ -111,6 +158,13 @@ export class Analysis {
   ];
   protected readonly fetchCalls: FetchPage = async (q: PageQuery) =>
     (await this.analysis.calls(q)) as unknown as Page<TableRow>;
+  protected readonly callDetail: DetailBuilder = (r) => [
+    ...field('Date', localTime(r['date_utc'])),
+    ...field('Number', r['address']),
+    ...field('Direction', r['direction']),
+    ...field('Service', r['service']),
+    ...field('Duration', duration(r['duration_seconds'])),
+  ];
 
   protected readonly contactColumns: readonly ColumnDef[] = [
     {
@@ -124,6 +178,12 @@ export class Analysis {
   ];
   protected readonly fetchContacts: FetchPage = async (q: PageQuery) =>
     (await this.analysis.contacts(q)) as unknown as Page<TableRow>;
+  protected readonly contactDetail: DetailBuilder = (r) => [
+    ...field('Name', [r['first'], r['last']].filter(Boolean).join(' ')),
+    ...field('Organization', r['organization']),
+    ...field('Phones', r['phones'], true),
+    ...field('Emails', r['emails'], true),
+  ];
 
   // -- launcher actions ---------------------------------------------
 

@@ -17,6 +17,8 @@ const SUMMARY: CaseSummary = {
   source: { path: '/x.pineapple', sha256: 'abc', is_encrypted: false },
   parse: { status: 'done', counts: { messages: 3 }, skipped: [] },
   counts: { apps: 1, files: 5, messages: 3, calls: 3, contacts: 2 },
+  is_encrypted: false,
+  files_unlocked: true,
 };
 
 describe('Analysis', () => {
@@ -34,6 +36,7 @@ describe('Analysis', () => {
       return { ok: true };
     });
 
+    const emptyPage = { rows: [], total: 0, limit: 50, offset: 0 };
     const analysis = {
       summary: summary.asReadonly(),
       progress: signal({ phase: 'idle' }).asReadonly(),
@@ -42,6 +45,13 @@ describe('Analysis', () => {
       closeCase: () => summary.set(null),
       domains: vi.fn().mockResolvedValue([]),
       apps: vi.fn().mockResolvedValue([]),
+      notes: vi.fn().mockResolvedValue(emptyPage),
+      safariHistory: vi.fn().mockResolvedValue(emptyPage),
+      safariBookmarks: vi.fn().mockResolvedValue(emptyPage),
+      whatsappChats: vi.fn().mockResolvedValue(emptyPage),
+      whatsappMessages: vi.fn().mockResolvedValue(emptyPage),
+      previewFile: vi.fn().mockResolvedValue(null),
+      extractFile: vi.fn().mockResolvedValue({ ok: true, path: '/x' }),
     };
 
     await TestBed.configureTestingModule({
@@ -97,6 +107,20 @@ describe('Analysis', () => {
     fixture.componentInstance['active'].set('files');
     await fixture.whenStable();
     expect(el.querySelector('app-files-section')).toBeTruthy();
+  });
+
+  it('lists the Notes / Safari / WhatsApp sections and renders them', async () => {
+    summary.set(SUMMARY);
+    const fixture = await render();
+    const el = fixture.nativeElement as HTMLElement;
+    const labels = Array.from(el.querySelectorAll('.analysis__nav-label')).map((n) =>
+      n.textContent?.trim(),
+    );
+    expect(labels).toEqual(expect.arrayContaining(['Notes', 'Safari', 'WhatsApp']));
+
+    fixture.componentInstance['active'].set('whatsapp');
+    await fixture.whenStable();
+    expect(el.querySelector('app-whatsapp-section')).toBeTruthy();
   });
 
   it('returns to the launcher on "Close analysis"', async () => {

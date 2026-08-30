@@ -46,6 +46,15 @@ td {
   white-space: nowrap;
 }
 
+tr.table__row--interactive {
+  cursor: pointer;
+}
+
+tr.table__row--interactive:hover td,
+tr.table__row--interactive:focus-visible td {
+  background: var(--mat-sys-surface-container-high);
+}
+
 .table__empty {
   margin: 24px;
   text-align: center;

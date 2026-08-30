@@ -120,7 +120,7 @@ describe('AnalysisService', () => {
     await vi.advanceTimersByTimeAsync(POLL_WINDOW * 3);
 
     expect(api.read_analysis_progress.mock.calls.length).toBe(calls);
-    expect(api.open_case).toHaveBeenCalledWith('/cases/x');
+    expect(api.open_case).toHaveBeenCalledWith('/cases/x', '');
     expect(service.summary()).toEqual(SUMMARY);
   });
 
@@ -153,6 +153,44 @@ describe('AnalysisService', () => {
 
     expect(await service.apps()).toEqual([{ bundle_id: 'com.a' }]);
     await expect(service.files({ limit: 50, offset: 0 })).rejects.toThrow('No analysis is open.');
+  });
+
+  it('unwraps the new artifact query wrappers', async () => {
+    const page = { rows: [{ rowid: 1 }], total: 1, limit: 50, offset: 0 };
+    const api = {
+      ...makeApi(),
+      analysis_notes: vi.fn().mockResolvedValue({ ok: true, result: page }),
+      analysis_safari_history: vi.fn().mockResolvedValue({ ok: true, result: page }),
+      analysis_safari_bookmarks: vi.fn().mockResolvedValue({ ok: true, result: page }),
+      analysis_whatsapp_chats: vi.fn().mockResolvedValue({ ok: true, result: page }),
+      analysis_whatsapp_messages: vi.fn().mockResolvedValue({ ok: true, result: page }),
+    };
+    useBridge(api);
+
+    expect(await service.notes({ limit: 50, offset: 0 })).toEqual(page);
+    expect(await service.safariHistory({ limit: 50, offset: 0 })).toEqual(page);
+    expect(await service.safariBookmarks({ limit: 50, offset: 0 })).toEqual(page);
+    expect(await service.whatsappChats({ limit: 50, offset: 0 })).toEqual(page);
+    await service.whatsappMessages({ limit: 50, offset: 0, chatJid: 'a@x' });
+    expect(api.analysis_whatsapp_messages).toHaveBeenCalledWith('a@x', null, 50, 0);
+  });
+
+  it('previewFile / extractFile / unlock go through the bridge', async () => {
+    const api = {
+      ...makeApi(),
+      analysis_preview_file: vi.fn().mockResolvedValue({
+        ok: true,
+        result: { kind: 'text', name: 'a', size: 1, text: 'x', truncated: false },
+      }),
+      analysis_extract_file: vi.fn().mockResolvedValue({ ok: true, path: '/tmp/a' }),
+      analysis_unlock: vi.fn().mockResolvedValue({ ok: true, summary: SUMMARY }),
+    };
+    useBridge(api);
+
+    expect((await service.previewFile('id'))?.kind).toBe('text');
+    expect(await service.extractFile('id')).toEqual({ ok: true, path: '/tmp/a' });
+    expect(await service.unlock('pw')).toEqual({ ok: true });
+    expect(service.summary()).toEqual(SUMMARY);
   });
 
   it('labels phases', () => {

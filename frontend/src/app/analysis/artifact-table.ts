@@ -9,12 +9,14 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
-import type { Page, PageQuery } from './analysis.models';
+import type { FilePreview, Page, PageQuery } from './analysis.models';
+import { RecordDetailDialog, type DetailField } from './record-detail-dialog';
 
 export type Cell = string | number | boolean | null;
 export type TableRow = Record<string, Cell>;
@@ -59,6 +61,17 @@ export class ArtifactTable {
   readonly pageSize = input(50);
   /** Bumping this (e.g. a domain filter changed) resets to page 0 and refetches. */
   readonly scope = input<unknown>(null);
+  /** When set, a row click opens the detail dialog with these fields. */
+  readonly detailFields = input<((row: TableRow) => DetailField[]) | null>(null);
+  readonly detailTitle = input<((row: TableRow) => string) | null>(null);
+  /** Files only: resolve the content preview shown inside the detail dialog. */
+  readonly resolvePreview = input<((row: TableRow) => Promise<FilePreview | null>) | null>(null);
+  /** Files only: the Extract action inside the detail dialog. */
+  readonly onExtract = input<
+    ((row: TableRow) => Promise<{ ok: boolean; path?: string; error?: string }>) | null
+  >(null);
+
+  private readonly dialog = inject(MatDialog);
 
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
 
@@ -114,6 +127,29 @@ export class ArtifactTable {
     if (column.format) return column.format(row);
     const value = row[column.key];
     return value === null || value === undefined ? '' : String(value);
+  }
+
+  protected get interactive(): boolean {
+    return this.detailFields() !== null;
+  }
+
+  protected async openDetail(row: TableRow): Promise<void> {
+    const build = this.detailFields();
+    if (!build) return;
+    const resolvePreview = this.resolvePreview();
+    const preview = resolvePreview ? await resolvePreview(row) : null;
+    const extract = this.onExtract();
+    this.dialog.open(RecordDetailDialog, {
+      width: 'min(680px, 94vw)',
+      maxWidth: '94vw',
+      autoFocus: false,
+      data: {
+        title: this.detailTitle()?.(row) ?? '',
+        fields: build(row),
+        preview,
+        extract: extract ? () => extract(row) : null,
+      },
+    });
   }
 
   private async load(query: PageQuery): Promise<void> {

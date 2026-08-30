@@ -79,6 +79,8 @@ export interface CaseSummary {
   source: CaseSource;
   parse: ParseReport;
   counts: Record<string, number>;
+  is_encrypted: boolean;
+  files_unlocked: boolean;
 }
 
 /** One page of a paged `analysis_*` query. */
@@ -135,10 +137,72 @@ export interface ContactRow {
   emails: string | null;
 }
 
+export interface NoteRow {
+  rowid: number;
+  folder: string | null;
+  title: string | null;
+  snippet: string | null;
+  body: string | null;
+  created_utc: string | null;
+  modified_utc: string | null;
+}
+
+export interface SafariHistoryRow {
+  rowid: number;
+  url: string | null;
+  title: string | null;
+  visit_utc: string | null;
+  visit_count: number;
+}
+
+export interface SafariBookmarkRow {
+  rowid: number;
+  title: string | null;
+  url: string | null;
+  folder: string | null;
+}
+
+export interface WhatsappChatRow {
+  rowid: number;
+  jid: string | null;
+  name: string | null;
+  last_message_utc: string | null;
+  message_count: number;
+}
+
+export interface WhatsappMessageRow {
+  rowid: number;
+  chat_jid: string | null;
+  chat_name: string | null;
+  from_me: number;
+  sender: string | null;
+  date_utc: string | null;
+  text: string | null;
+  media_type: string | null;
+}
+
 export interface DomainCount {
   domain: string;
   count: number;
 }
+
+/** Result of `analysis_preview_file` — a size-capped view of one backup file. */
+export type FilePreview =
+  | { kind: 'text'; name: string; size: number; text: string; truncated: boolean }
+  | { kind: 'plist'; name: string; size: number; json: unknown }
+  | {
+      kind: 'image';
+      name: string;
+      size: number;
+      mime: string;
+      data_base64: string;
+      truncated: boolean;
+    }
+  | { kind: 'binary'; name: string; size: number; truncated: boolean }
+  | { kind: 'unavailable'; name: string; reason: string; target?: string };
+
+/** Result of `analysis_extract_file`. */
+export type ExtractResult = { ok: true; path: string } | { ok: false; error?: string };
 
 /** Result of `choose_pineapple_file` / `choose_case_folder`. */
 export type PathResult = { ok: true; path: string } | { ok: false };
@@ -164,4 +228,5 @@ export interface PageQuery {
   offset: number;
   search?: string;
   domain?: string;
+  chatJid?: string;
 }

@@ -8,14 +8,21 @@ import type {
   CaseSummary,
   ContactRow,
   DomainCount,
+  ExtractResult,
+  FilePreview,
   FileRow,
   MessageRow,
+  NoteRow,
   OpenCaseResult,
   Page,
   PathResult,
   PeekResult,
   QueryResult,
+  SafariBookmarkRow,
+  SafariHistoryRow,
   StartResult,
+  WhatsappChatRow,
+  WhatsappMessageRow,
 } from '../analysis/analysis.models';
 
 /** The Python `Api` object, exposed by pywebview as `window.pywebview.api`. */
@@ -43,7 +50,10 @@ export interface PineappleApi {
   ): Promise<StartResult>;
   read_analysis_progress(): Promise<AnalysisProgress>;
   cancel_analysis(): Promise<{ ok: boolean }>;
-  open_case(caseDir: string): Promise<OpenCaseResult>;
+  open_case(caseDir: string, password?: string): Promise<OpenCaseResult>;
+  analysis_unlock(
+    password: string,
+  ): Promise<{ ok: boolean; error?: string; summary?: CaseSummary }>;
   analysis_summary(): Promise<QueryResult<CaseSummary>>;
   analysis_apps(): Promise<QueryResult<AppRow[]>>;
   analysis_domains(): Promise<QueryResult<DomainCount[]>>;
@@ -64,6 +74,33 @@ export interface PineappleApi {
     limit: number,
     offset: number,
   ): Promise<QueryResult<Page<ContactRow>>>;
+  analysis_notes(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<NoteRow>>>;
+  analysis_safari_history(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<SafariHistoryRow>>>;
+  analysis_safari_bookmarks(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<SafariBookmarkRow>>>;
+  analysis_whatsapp_chats(
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<WhatsappChatRow>>>;
+  analysis_whatsapp_messages(
+    chatJid: string | null,
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<WhatsappMessageRow>>>;
+  analysis_preview_file(fileId: string): Promise<QueryResult<FilePreview>>;
+  analysis_extract_file(fileId: string): Promise<ExtractResult | { ok: false }>;
 }
 
 declare global {

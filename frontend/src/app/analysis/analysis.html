@@ -28,7 +28,12 @@
             <app-analysis-overview [summary]="s" />
           }
           @case ('apps') {
-            <app-artifact-table [columns]="appColumns" [fetchPage]="fetchApps" />
+            <app-artifact-table
+              [columns]="appColumns"
+              [fetchPage]="fetchApps"
+              [detailFields]="appDetail"
+              [detailTitle]="appTitle"
+            />
           }
           @case ('files') {
             <app-files-section />
@@ -38,17 +43,35 @@
               [columns]="messageColumns"
               [fetchPage]="fetchMessages"
               [searchable]="true"
+              [detailFields]="messageDetail"
+              [detailTitle]="addressTitle"
             />
           }
           @case ('calls') {
-            <app-artifact-table [columns]="callColumns" [fetchPage]="fetchCalls" />
+            <app-artifact-table
+              [columns]="callColumns"
+              [fetchPage]="fetchCalls"
+              [detailFields]="callDetail"
+              [detailTitle]="addressTitle"
+            />
           }
           @case ('contacts') {
             <app-artifact-table
               [columns]="contactColumns"
               [fetchPage]="fetchContacts"
               [searchable]="true"
+              [detailFields]="contactDetail"
+              [detailTitle]="contactTitle"
             />
+          }
+          @case ('notes') {
+            <app-notes-section />
+          }
+          @case ('safari') {
+            <app-safari-section />
+          }
+          @case ('whatsapp') {
+            <app-whatsapp-section />
           }
         }
       </section>

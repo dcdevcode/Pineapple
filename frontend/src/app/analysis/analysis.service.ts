@@ -7,14 +7,21 @@ import type {
   CaseSummary,
   ContactRow,
   DomainCount,
+  ExtractResult,
+  FilePreview,
   FileRow,
   MessageRow,
+  NoteRow,
   Page,
   PageQuery,
   PathResult,
   PeekResult,
   QueryResult,
+  SafariBookmarkRow,
+  SafariHistoryRow,
   StartResult,
+  WhatsappChatRow,
+  WhatsappMessageRow,
 } from './analysis.models';
 import type { PineappleApi } from '../device/pywebview';
 
@@ -147,13 +154,27 @@ export class AnalysisService {
     }
   }
 
-  async openCase(caseDir: string): Promise<{ ok: boolean; error?: string }> {
+  async openCase(caseDir: string, password = ''): Promise<{ ok: boolean; error?: string }> {
     const api = window.pywebview?.api;
     if (!api) return { ok: false, error: NO_BRIDGE };
     try {
-      const result = await api.open_case(caseDir);
+      const result = await api.open_case(caseDir, password);
       if (!result.ok) return { ok: false, error: result.error };
       this._summary.set(result.summary);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: String(error) };
+    }
+  }
+
+  /** Supply the decryption key so an encrypted case can preview/extract files. */
+  async unlock(password: string): Promise<{ ok: boolean; error?: string }> {
+    const api = window.pywebview?.api;
+    if (!api) return { ok: false, error: NO_BRIDGE };
+    try {
+      const result = await api.analysis_unlock(password);
+      if (!result.ok) return { ok: false, error: result.error };
+      if (result.summary) this._summary.set(result.summary);
       return { ok: true };
     } catch (error) {
       return { ok: false, error: String(error) };
@@ -189,6 +210,51 @@ export class AnalysisService {
 
   contacts(q: PageQuery): Promise<Page<ContactRow>> {
     return this.query((api) => api.analysis_contacts(q.search ?? null, q.limit, q.offset));
+  }
+
+  notes(q: PageQuery): Promise<Page<NoteRow>> {
+    return this.query((api) => api.analysis_notes(q.search ?? null, q.limit, q.offset));
+  }
+
+  safariHistory(q: PageQuery): Promise<Page<SafariHistoryRow>> {
+    return this.query((api) => api.analysis_safari_history(q.search ?? null, q.limit, q.offset));
+  }
+
+  safariBookmarks(q: PageQuery): Promise<Page<SafariBookmarkRow>> {
+    return this.query((api) => api.analysis_safari_bookmarks(q.search ?? null, q.limit, q.offset));
+  }
+
+  whatsappChats(q: PageQuery): Promise<Page<WhatsappChatRow>> {
+    return this.query((api) => api.analysis_whatsapp_chats(q.limit, q.offset));
+  }
+
+  whatsappMessages(q: PageQuery): Promise<Page<WhatsappMessageRow>> {
+    return this.query((api) =>
+      api.analysis_whatsapp_messages(q.chatJid ?? null, q.search ?? null, q.limit, q.offset),
+    );
+  }
+
+  /** A size-capped preview of one backup file, or `null` when the bridge is gone. */
+  async previewFile(fileId: string): Promise<FilePreview | null> {
+    const api = window.pywebview?.api;
+    if (!api) return null;
+    try {
+      const envelope = await api.analysis_preview_file(fileId);
+      return envelope.ok ? envelope.result : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Save one backup file to a user-chosen path (native dialog). */
+  async extractFile(fileId: string): Promise<ExtractResult | { ok: false }> {
+    const api = window.pywebview?.api;
+    if (!api) return { ok: false };
+    try {
+      return await api.analysis_extract_file(fileId);
+    } catch (error) {
+      return { ok: false, error: String(error) } as ExtractResult;
+    }
   }
 
   private stopPolling(): void {

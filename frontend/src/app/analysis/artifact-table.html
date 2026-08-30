@@ -28,7 +28,15 @@
         </ng-container>
       }
       <tr mat-header-row *matHeaderRowDef="displayColumns()"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayColumns()"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayColumns()"
+        [class.table__row--interactive]="interactive"
+        [attr.role]="interactive ? 'button' : null"
+        [attr.tabindex]="interactive ? 0 : null"
+        (click)="interactive && openDetail(row)"
+        (keydown.enter)="interactive && openDetail(row)"
+      ></tr>
     </table>
 
     @if (!loading() && !error() && rows().length === 0) {

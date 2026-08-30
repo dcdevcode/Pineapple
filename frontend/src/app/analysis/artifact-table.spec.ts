@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
 import { ArtifactTable, type ColumnDef, type FetchPage, type TableRow } from './artifact-table';
 import type { Page } from './analysis.models';
+
+const dialog = { open: vi.fn() };
 
 const COLUMNS: ColumnDef[] = [
   { key: 'name', label: 'Name' },
@@ -14,9 +17,10 @@ function pageOf(rows: TableRow[], total = rows.length): Page<TableRow> {
 
 describe('ArtifactTable', () => {
   beforeEach(async () => {
+    dialog.open.mockClear();
     await TestBed.configureTestingModule({
       imports: [ArtifactTable],
-      providers: [provideNoopAnimations()],
+      providers: [provideNoopAnimations(), { provide: MatDialog, useValue: dialog }],
     }).compileComponents();
   });
 
@@ -72,5 +76,25 @@ describe('ArtifactTable', () => {
   it('shows the empty state', async () => {
     const el = (await render(vi.fn().mockResolvedValue(pageOf([])))).nativeElement as HTMLElement;
     expect(el.querySelector('.table__empty')).toBeTruthy();
+  });
+
+  it('opens the detail dialog on a row click when detailFields is set', async () => {
+    const fetch = vi.fn().mockResolvedValue(pageOf([{ name: 'a', size: 10 }]));
+    const fixture = await render(fetch, {
+      detailFields: (row: TableRow) => [{ label: 'Name', value: String(row['name']) }],
+    });
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('tr.mat-mdc-row')!.click();
+    await fixture.whenStable();
+
+    expect(dialog.open).toHaveBeenCalledOnce();
+    expect(dialog.open.mock.calls[0][1].data.fields).toEqual([{ label: 'Name', value: 'a' }]);
+  });
+
+  it('does nothing on a row click without detailFields', async () => {
+    const fetch = vi.fn().mockResolvedValue(pageOf([{ name: 'a', size: 10 }]));
+    const fixture = await render(fetch);
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('tr.mat-mdc-row')!.click();
+    await fixture.whenStable();
+    expect(dialog.open).not.toHaveBeenCalled();
   });
 });

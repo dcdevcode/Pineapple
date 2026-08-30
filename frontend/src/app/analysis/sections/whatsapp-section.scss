@@ -1,0 +1,16 @@
+.whatsapp {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  gap: 12px;
+}
+
+.whatsapp__chat {
+  width: 320px;
+}
+
+.whatsapp__table {
+  flex: 1;
+  min-height: 0;
+}
