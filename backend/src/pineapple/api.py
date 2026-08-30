@@ -362,6 +362,11 @@ class Api:
     ) -> dict[str, Any]:
         return self._case_query(lambda case: case.voicemail(search, limit, offset))
 
+    def analysis_accounts(
+        self, search: str | None = None, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.accounts(search, limit, offset))
+
     def analysis_preview_file(self, file_id: str) -> dict[str, Any]:
         """A size-capped, classified preview of one backup file's contents."""
         return self._case_query(lambda case: case.preview_file(file_id))

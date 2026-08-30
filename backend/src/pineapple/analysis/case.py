@@ -442,6 +442,24 @@ class CaseHandle:
             offset,
         )
 
+    def accounts(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """One page of configured accounts, by type then identifier; ``search``
+        matches the type, identifier or username."""
+        where, params = self._search_where(search, "type", "identifier", "username")
+        return self._page_query(
+            "SELECT rowid, type, identifier, description, username, added_utc, "
+            f"credential_type FROM accounts {where} ORDER BY type, identifier",
+            f"SELECT COUNT(*) FROM accounts {where}",
+            params,
+            limit,
+            offset,
+        )
+
     # -- backup file access -------------------------------------------------
 
     def files_unlocked(self) -> bool:

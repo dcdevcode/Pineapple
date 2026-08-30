@@ -17,6 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from pineapple.analysis.parsers.accounts import parse_accounts
 from pineapple.analysis.parsers.apps import index_apps, index_backup_info
 from pineapple.analysis.parsers.calendar import parse_calendar
 from pineapple.analysis.parsers.calls import parse_calls
@@ -96,6 +97,12 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "Library/Voicemail/voicemail.db",
         "HomeDomain",
         parse_voicemail,
+    ),
+    ParserSpec(
+        "accounts",
+        "Library/Accounts/Accounts3.sqlite",
+        "HomeDomain",
+        parse_accounts,
     ),
     ParserSpec(
         "safari_history",

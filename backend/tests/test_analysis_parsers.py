@@ -15,6 +15,7 @@ from analysis_support import (
     file_id,
 )
 from pineapple.analysis.errors import ArtifactUnreadable
+from pineapple.analysis.parsers.accounts import parse_accounts
 from pineapple.analysis.parsers.calendar import parse_calendar
 from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
@@ -203,6 +204,23 @@ def test_parse_voicemail_reads_caller_duration_and_trashed(
     assert rows[1]["trashed"] == 1
 
 
+def test_parse_accounts_joins_account_type(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_accounts(
+        _source(backup, "HomeDomain", "Library/Accounts/Accounts3.sqlite"), conn
+    )
+
+    assert written == 1
+    row = conn.execute("SELECT * FROM accounts").fetchone()
+    assert row["type"] == "IMAP"
+    assert row["identifier"] == "AAAA-1111"
+    assert row["description"] == "Work mail"
+    assert row["username"] == "ada@example.com"
+    assert row["credential_type"] == "com.apple.account.IMAP"
+    assert row["added_utc"].startswith("2023-")
+
+
 def test_parse_calls_maps_direction_and_service(
     conn: sqlite3.Connection, backup: Path
 ) -> None:
@@ -247,6 +265,7 @@ def test_parse_contacts_flattens_multivalues(
         parse_photos,
         parse_calendar,
         parse_voicemail,
+        parse_accounts,
         parse_calls,
         parse_contacts,
         parse_safari_history,

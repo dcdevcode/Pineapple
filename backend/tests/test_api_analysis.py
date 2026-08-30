@@ -114,6 +114,7 @@ def test_new_artifact_queries_answer_from_the_case(image: Path, tmp_path: Path) 
     assert api.analysis_photo_albums()["result"]["total"] == 1
     assert api.analysis_calendar()["result"]["total"] == 2
     assert api.analysis_voicemail()["result"]["total"] == 2
+    assert api.analysis_accounts()["result"]["total"] == 1
     assert api.analysis_safari_history()["result"]["total"] == 2
     assert api.analysis_safari_bookmarks()["result"]["total"] == 1
     assert api.analysis_whatsapp_chats()["result"]["total"] == 1

@@ -185,7 +185,7 @@ buttons, emoji, purple, glassmorphism).
   `ChatStorage.sqlite` → two tables, `photos` = `Photos.sqlite` → `photos` +
   `photo_albums`, each photo row keeping the asset's Manifest file id for preview,
   `calendar` = `Calendar.sqlitedb` → `calendar_events`, `voicemail` =
-  `voicemail.db`)
+  `voicemail.db`, `accounts` = `Accounts3.sqlite`)
   are tolerant: a missing or damaged source
   DB is recorded as skipped, not fatal. `calls` and `safari_history` are
   `encrypted_only` — iOS keeps those out of *unencrypted* backups, so their

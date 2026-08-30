@@ -288,6 +288,24 @@ INSERT INTO voicemail VALUES (2, '+15559998888', 1600100000, 8, 1600200000, NULL
     )
 
 
+def _accounts(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE ZACCOUNTTYPE (
+    Z_PK INTEGER PRIMARY KEY, ZACCOUNTTYPEDESCRIPTION TEXT, ZIDENTIFIER TEXT
+);
+CREATE TABLE ZACCOUNT (
+    Z_PK INTEGER PRIMARY KEY, ZACCOUNTTYPE INTEGER, ZIDENTIFIER TEXT,
+    ZACCOUNTDESCRIPTION TEXT, ZUSERNAME TEXT, ZDATE REAL
+);
+INSERT INTO ZACCOUNTTYPE VALUES (1, 'IMAP', 'com.apple.account.IMAP');
+INSERT INTO ZACCOUNT VALUES
+    (1, 1, 'AAAA-1111', 'Work mail', 'ada@example.com', 700000000.0);
+        """,
+    )
+
+
 def _address_book(path: Path) -> None:
     _script(
         path,
@@ -325,6 +343,7 @@ _SOURCES = (
     _SourceDb("CameraRollDomain", "Media/PhotoData/Photos.sqlite", _photos),
     _SourceDb("HomeDomain", "Library/Calendar/Calendar.sqlitedb", _calendar),
     _SourceDb("HomeDomain", "Library/Voicemail/voicemail.db", _voicemail),
+    _SourceDb("HomeDomain", "Library/Accounts/Accounts3.sqlite", _accounts),
     _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
     _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
     _SourceDb(
