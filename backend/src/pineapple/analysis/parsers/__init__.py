@@ -22,6 +22,7 @@ from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
+from pineapple.analysis.parsers.notes import parse_notes
 
 ParseFn = Callable[[Path, sqlite3.Connection], int]
 
@@ -54,6 +55,12 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "Library/AddressBook/AddressBook.sqlitedb",
         "HomeDomain",
         parse_contacts,
+    ),
+    ParserSpec(
+        "notes",
+        "NoteStore.sqlite",
+        "AppDomainGroup-group.com.apple.notes",
+        parse_notes,
     ),
 ]
 

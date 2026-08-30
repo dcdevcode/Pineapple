@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from analysis_support import SERIAL, build_backup, file_id
+from analysis_support import BACKUP_FILE_COUNT, SERIAL, build_backup, file_id
 from pineapple.analysis.case import load_case
 from pineapple.analysis.descriptor import (
     CaseDescriptor,
@@ -64,7 +64,7 @@ def test_load_case_exposes_descriptor_and_summary(case_dir: Path) -> None:
         summary = handle.summary()
         assert summary["device"]["serial"] == SERIAL
         assert summary["counts"]["messages"] == 3
-        assert summary["counts"]["files"] == 5
+        assert summary["counts"]["files"] == BACKUP_FILE_COUNT
     finally:
         handle.close()
 

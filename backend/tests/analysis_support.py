@@ -8,6 +8,7 @@ for the real decryption library and serves the cleartext fixtures.
 from __future__ import annotations
 
 import base64
+import gzip
 import hashlib
 import plistlib
 import shutil
@@ -109,6 +110,56 @@ INSERT INTO message_attachment_join VALUES (3, 99);
         conn.close()
 
 
+def _pb_varint(value: int) -> bytes:
+    out = bytearray()
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        out.append(byte | (0x80 if value else 0))
+        if not value:
+            return bytes(out)
+
+
+def _pb_len_field(field: int, payload: bytes) -> bytes:
+    """One length-delimited protobuf field (wire type 2)."""
+    return _pb_varint(field << 3 | 2) + _pb_varint(len(payload)) + payload
+
+
+NOTE_BODY_TEXT = "Shopping list:\n- pineapples\n- forensics tooling"
+
+
+def _note_proto(text: str) -> bytes:
+    """A NoteStore ``ZDATA`` payload: gzip of Document(2) -> Note(3) -> text(2)."""
+    note = _pb_len_field(2, text.encode())
+    document = _pb_len_field(3, note)
+    return gzip.compress(_pb_len_field(2, document))
+
+
+def _note_store(path: Path) -> None:
+    conn = sqlite3.connect(path)
+    try:
+        conn.executescript(
+            """
+CREATE TABLE ZICCLOUDSYNCINGOBJECT (
+    Z_PK INTEGER PRIMARY KEY, ZTITLE1 TEXT, ZTITLE2 TEXT, ZSNIPPET TEXT,
+    ZFOLDER INTEGER, ZCREATIONDATE1 REAL, ZMODIFICATIONDATE1 REAL
+);
+CREATE TABLE ZICNOTEDATA (Z_PK INTEGER PRIMARY KEY, ZNOTE INTEGER, ZDATA BLOB);
+INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZTITLE2) VALUES (1, 'Notes');
+INSERT INTO ZICCLOUDSYNCINGOBJECT
+    (Z_PK, ZTITLE1, ZSNIPPET, ZFOLDER, ZCREATIONDATE1, ZMODIFICATIONDATE1)
+VALUES (2, 'Shopping list', 'Shopping list: pineapples', 1, 700000000.0, 700000500.0);
+            """
+        )
+        conn.execute(
+            "INSERT INTO ZICNOTEDATA (Z_PK, ZNOTE, ZDATA) VALUES (1, 2, ?)",
+            (_note_proto(NOTE_BODY_TEXT),),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _call_history(path: Path) -> None:
     _script(
         path,
@@ -157,10 +208,15 @@ _SOURCES = (
         "HomeDomain", "Library/CallHistoryDB/CallHistory.storedata", _call_history
     ),
     _SourceDb("HomeDomain", "Library/AddressBook/AddressBook.sqlitedb", _address_book),
+    _SourceDb("AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite", _note_store),
 )
 
 UDID = "00008110-000A1B2C3D4E001E"
 SERIAL = "F17ABC123DEF"
+
+# Manifest ``Files`` rows a full ``build_backup`` writes: one per source DB plus
+# the fixed directory + symlink rows.
+BACKUP_FILE_COUNT = len(_SOURCES) + 2
 
 
 def build_backup(

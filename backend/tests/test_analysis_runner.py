@@ -11,6 +11,7 @@ import pytest
 
 from analysis_support import (
     ATTRIBUTED_BODY_TEXT,
+    BACKUP_FILE_COUNT,
     SERIAL,
     FakeEncryptedBackup,
     build_backup,
@@ -57,7 +58,8 @@ def test_full_run_on_an_unencrypted_image(
     assert state["counts"]["messages"] == 3
     assert state["counts"]["calls"] == 3
     assert state["counts"]["contacts"] == 2
-    assert state["counts"]["files"] == 5
+    assert state["counts"]["notes"] == 1
+    assert state["counts"]["files"] == BACKUP_FILE_COUNT
 
     assert (case_dir / "analysis.db").is_file()
     assert (case_dir / f"{SERIAL}.json").is_file()

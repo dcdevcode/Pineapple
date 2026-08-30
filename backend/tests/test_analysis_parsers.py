@@ -7,12 +7,19 @@ from pathlib import Path
 
 import pytest
 
-from analysis_support import ATTRIBUTED_BODY_TEXT, build_backup, file_id
+from analysis_support import (
+    ATTRIBUTED_BODY_TEXT,
+    BACKUP_FILE_COUNT,
+    NOTE_BODY_TEXT,
+    build_backup,
+    file_id,
+)
 from pineapple.analysis.errors import ArtifactUnreadable
 from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
+from pineapple.analysis.parsers.notes import parse_notes, walk_protobuf_string
 from pineapple.analysis.schema import initialize
 
 
@@ -47,6 +54,28 @@ def test_parse_messages(conn: sqlite3.Connection, backup: Path) -> None:
     assert rows[2]["text"] == ATTRIBUTED_BODY_TEXT
     assert rows[2]["attachments"] == 1
     assert rows[0]["chat_id"] == 7
+
+
+def test_parse_notes_reads_title_folder_snippet_and_body(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_notes(
+        _source(backup, "AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite"),
+        conn,
+    )
+
+    assert written == 1
+    note = conn.execute("SELECT * FROM notes").fetchone()
+    assert note["title"] == "Shopping list"
+    assert note["folder"] == "Notes"
+    assert note["snippet"] == "Shopping list: pineapples"
+    assert note["body"] == NOTE_BODY_TEXT
+    assert note["created_utc"].startswith("2023-")
+
+
+def test_walk_protobuf_string_returns_none_off_path() -> None:
+    assert walk_protobuf_string(b"\x12\x02hi", (9,)) is None
+    assert walk_protobuf_string(b"garbage", (2, 3, 2)) is None
 
 
 def test_parse_calls_maps_direction_and_service(
@@ -104,7 +133,7 @@ def test_index_files_records_dirs_sizes_and_symlink_targets(
     finally:
         manifest.close()
 
-    assert written == 5
+    assert written == BACKUP_FILE_COUNT
     link = conn.execute(
         "SELECT * FROM files WHERE relative_path = 'Library/link'"
     ).fetchone()
