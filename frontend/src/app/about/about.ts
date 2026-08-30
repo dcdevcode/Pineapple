@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Brand } from '../brand/brand';
 
 /** One credited project shown in the About tab's Thanks list. */
 interface Credit {
@@ -14,6 +15,7 @@ interface Credit {
  */
 @Component({
   selector: 'app-about',
+  imports: [Brand],
   templateUrl: './about.html',
   styleUrl: './about.scss',
 })

@@ -1,0 +1,15 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+}
+
+.brand__logo {
+  display: block;
+  width: auto;
+  height: 34px;
+}
+
+:host(.brand--large) .brand__logo {
+  height: 52px;
+}

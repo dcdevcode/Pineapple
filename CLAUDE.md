@@ -50,11 +50,12 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
 | `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. `analysis_support.py` builds a tiny real on-disk backup + `.pineapple` (sms / calls / contacts / notes / safari / whatsapp source DBs, a real `attributedBody` sample) and fakes `iphone_backup_decrypt`. |
-| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device**, **Analysis** and **About** tabs; starts device polling. |
+| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device**, **Analysis** and **About** tabs, the `Brand` lockup pinned top-left; starts device polling. |
+| `frontend/src/app/brand/` | `Brand`: the reusable `logo.png` lockup (pineapple mark + wordmark, one image). `size` is `compact` (default, shell) or `large` (About). |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
-| `frontend/src/app/about/` | About tab: the `Pineapple` wordmark, the author line, and a `Thanks` list crediting the core libraries (`pymobiledevice3`, `iphone_backup_decrypt`, `python-typedstream`, `pywebview`). Static — no bridge. |
+| `frontend/src/app/about/` | About tab: the `Brand` lockup (`size="large"`), the author line, and a `Thanks` list crediting the core libraries (`pymobiledevice3`, `iphone_backup_decrypt`, `python-typedstream`, `pywebview`). Static — no bridge. |
 | `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control beside Search. Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
 | `frontend/src/styles.scss` | Global Angular Material theme — a single fixed **light** scheme (no theme switch), a goldenrod-amber accent, a nod to the pineapple. |
 | `frontend/eslint.config.js` | `angular-eslint` + `typescript-eslint` flat config (`pnpm lint`). |

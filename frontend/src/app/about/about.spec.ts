@@ -12,9 +12,9 @@ describe('About', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  it('shows the wordmark and the author', async () => {
+  it('shows the brand lockup and the author', async () => {
     const el = await render();
-    expect(el.querySelector('.about__wordmark')?.textContent).toContain('Pineapple');
+    expect(el.querySelector('.about__brand img')?.getAttribute('alt')).toBe('Pineapple');
     expect(el.querySelector('.about__byline')?.textContent).toContain('Diego Corona');
   });
 

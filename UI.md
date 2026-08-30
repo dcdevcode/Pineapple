@@ -91,6 +91,15 @@ down the chain so inner scroll areas work).
 
 These are the reusable shapes already in the app. Match them.
 
+### Brand lockup (`Brand`)
+
+`brand/` — the full product logo (`public/logo.png`: the pineapple mark plus the
+"Pineapple" wordmark, a single image) rendered as one `<img>` sized by height.
+`size` is `compact` (34 px — the default, pinned top-left of the shell, level
+with the tab row) or `large` (52 px — the About tab). Reuse it anywhere the app
+names itself; never re-typeset the wordmark. The logo is the product mark, so it
+keeps its own colour — it is not subject to the monochrome line-art rule below.
+
 ### Tab bar as an MD3 segmented control
 
 `app.html` is a `mat-tab-group` (Device / Analysis / About). `styles.scss`

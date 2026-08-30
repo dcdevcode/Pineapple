@@ -15,10 +15,8 @@
   border-bottom: 1px solid var(--app-border);
 }
 
-.about__wordmark {
-  margin: 0;
-  font: var(--mat-sys-headline-medium);
-  color: var(--app-text);
+.about__brand {
+  display: block;
 }
 
 .about__byline {
@@ -59,12 +57,10 @@
   font: var(--mat-sys-body-large);
 }
 
+// The goldenrod accent is only ~3:1 on white, so the link carries an underline
+// at rest rather than leaning on colour alone.
 .about__credit-name a {
   color: var(--mat-sys-primary);
-  text-decoration: none;
-}
-
-.about__credit-name a:hover {
   text-decoration: underline;
 }
 

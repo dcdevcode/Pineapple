@@ -27,6 +27,14 @@ describe('App', () => {
     expect(labels).toEqual(['Device', 'Analysis', 'About']);
   });
 
+  it('should show the brand lockup in the top-left', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const logo = fixture.nativeElement.querySelector('.app-shell__brand .brand__logo');
+    expect(logo?.getAttribute('src')).toBe('logo.png');
+    expect(logo?.getAttribute('alt')).toBe('Pineapple');
+  });
+
   it('should start watching for devices on creation', () => {
     const start = vi.spyOn(DeviceService.prototype, 'start').mockImplementation(() => undefined);
     TestBed.createComponent(App);
