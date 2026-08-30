@@ -10,6 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "iphone-backup-decrypt>=0.9.0",
     "pymobiledevice3>=11.2.1",
+    "pytypedstream>=0.1.0",
     "pywebview>=5.4",
 ]
 
@@ -42,7 +43,7 @@ strict = true
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["iphone_backup_decrypt.*"]
+module = ["iphone_backup_decrypt.*", "typedstream.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

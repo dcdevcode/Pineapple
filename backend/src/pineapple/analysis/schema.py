@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sqlite3
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _DDL = """
 CREATE TABLE case_meta (
@@ -81,6 +81,52 @@ CREATE TABLE contacts (
     phones       TEXT,
     emails       TEXT
 );
+
+CREATE TABLE notes (
+    rowid        INTEGER PRIMARY KEY,
+    folder       TEXT,
+    title        TEXT,
+    snippet      TEXT,
+    body         TEXT,
+    created_utc  TEXT,
+    modified_utc TEXT
+);
+
+CREATE TABLE safari_history (
+    rowid       INTEGER PRIMARY KEY,
+    url         TEXT,
+    title       TEXT,
+    visit_utc   TEXT,
+    visit_count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_safari_history_visit ON safari_history(visit_utc);
+
+CREATE TABLE safari_bookmarks (
+    rowid  INTEGER PRIMARY KEY,
+    title  TEXT,
+    url    TEXT,
+    folder TEXT
+);
+
+CREATE TABLE whatsapp_chats (
+    rowid             INTEGER PRIMARY KEY,
+    jid               TEXT,
+    name              TEXT,
+    last_message_utc  TEXT,
+    message_count     INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE whatsapp_messages (
+    rowid      INTEGER PRIMARY KEY,
+    chat_jid   TEXT,
+    chat_name  TEXT,
+    from_me    INTEGER NOT NULL DEFAULT 0,
+    sender     TEXT,
+    date_utc   TEXT,
+    text       TEXT,
+    media_type TEXT
+);
+CREATE INDEX idx_whatsapp_messages_date ON whatsapp_messages(date_utc);
 """
 
 

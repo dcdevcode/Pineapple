@@ -7,6 +7,7 @@ for the real decryption library and serves the cleartext fixtures.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import plistlib
 import shutil
@@ -17,6 +18,17 @@ from pathlib import Path
 
 # 2001-01-01 in ns; add per-message offsets. (Cocoa absolute time, iOS 11+.)
 _NS_2001 = 700_000_000 * 1_000_000_000
+
+# A real iMessage ``attributedBody`` typedstream (an NSMutableAttributedString
+# wrapping the text below). Source: ReagentX/imessage-exporter test data (MIT).
+ATTRIBUTED_BODY_TEXT = "Noter test"
+ATTRIBUTED_BODY_SAMPLE = base64.b64decode(
+    "BAtzdHJlYW10eXBlZIHoA4QBQISEhBlOU011dGFibGVBdHRyaWJ1dGVkU3RyaW5nAISEEk5T"
+    "QXR0cmlidXRlZFN0cmluZwCEhAhOU09iamVjdACFkoSEhA9OU011dGFibGVTdHJpbmcBhIQI"
+    "TlNTdHJpbmcBlYQBKwpOb3RlciB0ZXN0hoQCaUkBCpKEhIQMTlNEaWN0aW9uYXJ5AJWEAWkB"
+    "koSYmB1fX2tJTU1lc3NhZ2VQYXJ0QXR0cmlidXRlTmFtZYaShISECE5TTnVtYmVyAISEB05T"
+    "VmFsdWUAlYQBKoSbmwCGhoY="
+)
 
 
 def file_id(domain: str, relative_path: str) -> str:
@@ -64,23 +76,37 @@ def _script(path: Path, statements: str) -> None:
 def _sms_db(path: Path) -> None:
     _script(
         path,
-        f"""
+        """
 CREATE TABLE handle (ROWID INTEGER PRIMARY KEY, id TEXT);
 CREATE TABLE message (
-    ROWID INTEGER PRIMARY KEY, text TEXT, handle_id INTEGER,
+    ROWID INTEGER PRIMARY KEY, text TEXT, attributedBody BLOB, handle_id INTEGER,
     is_from_me INTEGER, date INTEGER, service TEXT
 );
 CREATE TABLE chat_message_join (chat_id INTEGER, message_id INTEGER);
 CREATE TABLE message_attachment_join (message_id INTEGER, attachment_id INTEGER);
 
 INSERT INTO handle VALUES (1, '+15551234567');
-INSERT INTO message VALUES (1, 'hello there', 1, 0, {_NS_2001 + 10}, 'iMessage');
-INSERT INTO message VALUES (2, 'reply back', 1, 1, {_NS_2001 + 20}, 'iMessage');
-INSERT INTO message VALUES (3, NULL, 1, 0, {_NS_2001 + 30}, 'SMS');
 INSERT INTO chat_message_join VALUES (7, 1), (7, 2), (7, 3);
 INSERT INTO message_attachment_join VALUES (3, 99);
         """,
     )
+    conn = sqlite3.connect(path)
+    try:
+        # Row 3 has no plain text -- its body lives only in attributedBody, the
+        # iOS 16+ case the parser must recover.
+        conn.executemany(
+            "INSERT INTO message"
+            "(ROWID, text, attributedBody, handle_id, is_from_me, date, service) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                (1, "hello there", None, 1, 0, _NS_2001 + 10, "iMessage"),
+                (2, "reply back", None, 1, 1, _NS_2001 + 20, "iMessage"),
+                (3, None, ATTRIBUTED_BODY_SAMPLE, 1, 0, _NS_2001 + 30, "SMS"),
+            ],
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _call_history(path: Path) -> None:

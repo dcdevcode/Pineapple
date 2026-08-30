@@ -1,8 +1,8 @@
 """Parse ``HomeDomain/Library/SMS/sms.db`` into the ``messages`` table.
 
 iOS 16+ leaves ``message.text`` NULL for some rows and keeps the body in an
-``attributedBody`` archive instead; recovering that is a later step, so those
-rows land with a NULL ``text``.
+``attributedBody`` typedstream archive instead; :func:`decode_attributed_body`
+recovers those.
 """
 
 from __future__ import annotations
@@ -12,11 +12,13 @@ from pathlib import Path
 
 from pineapple.analysis.errors import ArtifactUnreadable
 from pineapple.analysis.parsers._common import mac_absolute_to_iso, open_source
+from pineapple.analysis.parsers.attributed_body import decode_attributed_body
 
 _QUERY = """
 SELECT
     m.ROWID                                   AS rowid,
     m.text                                    AS text,
+    m.attributedBody                          AS attributed_body,
     m.is_from_me                              AS is_from_me,
     m.date                                    AS date,
     m.service                                 AS service,
@@ -40,6 +42,11 @@ def parse_messages(source_db: Path, conn: sqlite3.Connection) -> int:
     except sqlite3.Error as error:
         raise ArtifactUnreadable(f"sms.db: {error}") from error
 
+    def body(row: sqlite3.Row) -> str | None:
+        if row["text"] is not None:
+            return str(row["text"])
+        return decode_attributed_body(row["attributed_body"])
+
     conn.executemany(
         "INSERT OR REPLACE INTO messages"
         "(rowid, chat_id, address, service, is_from_me, date_utc, text, attachments) "
@@ -52,7 +59,7 @@ def parse_messages(source_db: Path, conn: sqlite3.Connection) -> int:
                 row["service"],
                 1 if row["is_from_me"] else 0,
                 mac_absolute_to_iso(row["date"]),
-                row["text"],
+                body(row),
                 row["attachments"] or 0,
             )
             for row in rows

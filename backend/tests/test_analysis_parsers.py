@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from analysis_support import build_backup, file_id
+from analysis_support import ATTRIBUTED_BODY_TEXT, build_backup, file_id
 from pineapple.analysis.errors import ArtifactUnreadable
 from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
@@ -43,7 +43,8 @@ def test_parse_messages(conn: sqlite3.Connection, backup: Path) -> None:
     assert rows[0]["is_from_me"] == 0
     assert rows[1]["is_from_me"] == 1
     assert rows[0]["date_utc"].startswith("2023-")
-    assert rows[2]["text"] is None
+    # Row 3 had no plain text -- recovered from attributedBody.
+    assert rows[2]["text"] == ATTRIBUTED_BODY_TEXT
     assert rows[2]["attachments"] == 1
     assert rows[0]["chat_id"] == 7
 

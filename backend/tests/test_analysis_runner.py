@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 
 from analysis_support import (
+    ATTRIBUTED_BODY_TEXT,
     SERIAL,
     FakeEncryptedBackup,
     build_backup,
@@ -67,6 +68,14 @@ def test_full_run_on_an_unencrypted_image(
     assert descriptor["device"]["serial"] == SERIAL
     assert descriptor["source"]["is_encrypted"] is False
     assert descriptor["parse"]["counts"]["messages"] == 3
+
+    # The iOS 16+ row whose body lived only in attributedBody is recovered.
+    handle = load_case(case_dir)
+    try:
+        texts = [row["text"] for row in handle.messages()["rows"]]
+    finally:
+        handle.close()
+    assert ATTRIBUTED_BODY_TEXT in texts
 
 
 def test_full_run_on_an_encrypted_image(

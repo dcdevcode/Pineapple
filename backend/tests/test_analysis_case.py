@@ -112,7 +112,7 @@ def test_load_case_rejects_a_plain_folder(tmp_path: Path) -> None:
 
 def test_load_case_rejects_a_schema_mismatch(case_dir: Path) -> None:
     path = descriptor_path(case_dir, SERIAL)
-    data = path.read_text().replace('"schema_version": 1', '"schema_version": 99')
+    data = path.read_text().replace('"schema_version": 2', '"schema_version": 99')
     path.write_text(data)
 
     with pytest.raises(AnalysisError, match="schema"):
