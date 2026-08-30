@@ -13,9 +13,10 @@ import { DeviceService } from './device/device.service';
 })
 export class App {
   private readonly devices = inject(DeviceService);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     this.devices.start();
-    inject(DestroyRef).onDestroy(() => this.devices.stop());
+    this.destroyRef.onDestroy(() => this.devices.stop());
   }
 }

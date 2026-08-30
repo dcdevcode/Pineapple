@@ -10,8 +10,8 @@ import { NotesSection } from './sections/notes-section';
 import { Overview } from './sections/overview';
 import { SafariSection } from './sections/safari-section';
 import { WhatsappSection } from './sections/whatsapp-section';
-import { duration, field, localTime, type DetailBuilder } from './detail-fields';
-import type { DeviceFacts, Page, PageQuery } from './analysis.models';
+import { deviceLine, duration, field, localTime, type DetailBuilder } from './detail-fields';
+import type { Page, PageQuery } from './analysis.models';
 
 type SectionId =
   | 'overview'
@@ -66,16 +66,7 @@ export class Analysis {
     { id: 'whatsapp', label: 'WhatsApp' },
   ];
 
-  protected readonly deviceLine = computed(() => {
-    const d: DeviceFacts = this.summary()?.device ?? {};
-    return [
-      d.product_name ?? d.product_type,
-      d.product_version ? `iOS ${d.product_version}` : null,
-      d.serial,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-  });
+  protected readonly deviceLine = computed(() => deviceLine(this.summary()?.device));
 
   private readonly countKeys: Partial<Record<SectionId, readonly string[]>> = {
     apps: ['apps'],

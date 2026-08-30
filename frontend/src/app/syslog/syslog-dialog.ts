@@ -2,8 +2,8 @@ import {
   AfterViewInit,
   Component,
   DestroyRef,
+  afterRenderEffect,
   computed,
-  effect,
   inject,
   signal,
   viewChild,
@@ -16,7 +16,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { SyslogService } from './syslog.service';
+import { SyslogService, formatSyslogLines } from './syslog.service';
 import type { SyslogLine } from './syslog.models';
 
 export interface SyslogDialogData {
@@ -75,11 +75,13 @@ export class SyslogDialog implements AfterViewInit {
     void this.syslog.start();
     this.destroyRef.onDestroy(() => void this.syslog.stop());
 
-    effect(() => {
+    // After each render, keep the newest line in view unless the user has
+    // scrolled up. afterRenderEffect runs once the viewport exists and has the
+    // new item count, so no manual deferral is needed.
+    afterRenderEffect(() => {
       const lines = this.filteredLines();
       if (this.followTail() && lines.length > 0) {
-        // Wait for the viewport to render the new item count.
-        queueMicrotask(() => this.viewport().scrollToIndex(lines.length - 1, 'auto'));
+        this.viewport().scrollToIndex(lines.length - 1, 'auto');
       }
     });
   }
@@ -112,14 +114,7 @@ export class SyslogDialog implements AfterViewInit {
   }
 
   async export(): Promise<void> {
-    const text = this.filteredLines()
-      .map(
-        (line) =>
-          `${line.timestamp} ${line.process}[${line.pid}] <${line.level}>` +
-          `${line.label ? ` [${line.label}]` : ''}: ${line.message}`,
-      )
-      .join('\n');
-    await this.syslog.export(text);
+    await this.syslog.export(formatSyslogLines(this.filteredLines()));
   }
 
   close(): void {

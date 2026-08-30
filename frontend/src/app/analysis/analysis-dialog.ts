@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AnalysisService, phaseLabel } from './analysis.service';
+import { deviceLine } from './detail-fields';
 import { RUNNING_PHASES, type AnalysisPhase, type DeviceFacts } from './analysis.models';
 
 type Step = 'pick' | 'configure' | 'progress' | 'result';
@@ -41,16 +42,7 @@ export class AnalysisDialog {
   readonly pickError = signal<string | null>(null);
   readonly startError = signal<string | null>(null);
 
-  readonly deviceLine = computed(() => {
-    const d = this.device() ?? {};
-    return [
-      d.product_name ?? d.product_type,
-      d.product_version ? `iOS ${d.product_version}` : null,
-      d.serial,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-  });
+  readonly deviceLine = computed(() => deviceLine(this.device()));
 
   readonly phaseText = computed(() => phaseLabel(this.progress().phase));
   readonly isRunning = computed(() => RUNNING_PHASES.includes(this.progress().phase));

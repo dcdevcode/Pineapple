@@ -1,6 +1,18 @@
 import { Injectable, computed, signal } from '@angular/core';
 import type { SyslogActionResult, SyslogLine, SyslogReadResult } from './syslog.models';
 
+/** One log line rendered back to a Console-style text row (the inverse of the
+ *  backend's parse), used for the export file. */
+export function formatSyslogLine(line: SyslogLine): string {
+  const label = line.label ? ` [${line.label}]` : '';
+  return `${line.timestamp} ${line.process}[${line.pid}] <${line.level}>${label}: ${line.message}`;
+}
+
+/** The given lines as newline-joined export text. */
+export function formatSyslogLines(lines: readonly SyslogLine[]): string {
+  return lines.map(formatSyslogLine).join('\n');
+}
+
 const POLL_INTERVAL_MS = 400;
 
 /** Cap on lines kept in memory; the oldest are dropped past this. */
