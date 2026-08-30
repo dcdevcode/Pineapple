@@ -176,8 +176,9 @@ def test_sniff_classifies_image_plist_text_and_binary() -> None:
     # A plist is only decoded when the payload is whole.
     assert _sniff(plist, truncated=True)["kind"] == "binary"
 
-    text = _sniff("hola señor".encode(), truncated=False)
-    assert text == {"kind": "text", "text": "hola señor", "truncated": False}
+    sample = "a note with an em—dash and a ✓"
+    text = _sniff(sample.encode(), truncated=False)
+    assert text == {"kind": "text", "text": sample, "truncated": False}
 
     binary = _sniff(b"\xff\xfe\x00\x01\x02", truncated=False)
     assert binary == {"kind": "binary", "size": 5, "truncated": False}
