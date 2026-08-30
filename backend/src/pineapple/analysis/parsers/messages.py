@@ -1,0 +1,61 @@
+"""Parse ``HomeDomain/Library/SMS/sms.db`` into the ``messages`` table.
+
+iOS 16+ leaves ``message.text`` NULL for some rows and keeps the body in an
+``attributedBody`` archive instead; recovering that is a later step, so those
+rows land with a NULL ``text``.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
+
+from pineapple.analysis.errors import ArtifactUnreadable
+from pineapple.analysis.parsers._common import mac_absolute_to_iso, open_source
+
+_QUERY = """
+SELECT
+    m.ROWID                                   AS rowid,
+    m.text                                    AS text,
+    m.is_from_me                              AS is_from_me,
+    m.date                                    AS date,
+    m.service                                 AS service,
+    h.id                                      AS address,
+    (SELECT cmj.chat_id FROM chat_message_join cmj
+        WHERE cmj.message_id = m.ROWID LIMIT 1) AS chat_id,
+    (SELECT COUNT(*) FROM message_attachment_join maj
+        WHERE maj.message_id = m.ROWID)          AS attachments
+FROM message m
+LEFT JOIN handle h ON h.ROWID = m.handle_id
+"""
+
+
+def parse_messages(source_db: Path, conn: sqlite3.Connection) -> int:
+    try:
+        source = open_source(source_db)
+        try:
+            rows = source.execute(_QUERY).fetchall()
+        finally:
+            source.close()
+    except sqlite3.Error as error:
+        raise ArtifactUnreadable(f"sms.db: {error}") from error
+
+    conn.executemany(
+        "INSERT OR REPLACE INTO messages"
+        "(rowid, chat_id, address, service, is_from_me, date_utc, text, attachments) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            (
+                row["rowid"],
+                row["chat_id"],
+                row["address"],
+                row["service"],
+                1 if row["is_from_me"] else 0,
+                mac_absolute_to_iso(row["date"]),
+                row["text"],
+                row["attachments"] or 0,
+            )
+            for row in rows
+        ],
+    )
+    return len(rows)

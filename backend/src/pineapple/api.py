@@ -9,6 +9,8 @@ Method names are snake_case because they appear verbatim as
 """
 
 import asyncio
+import contextlib
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -16,6 +18,10 @@ from typing import Any
 import webview
 
 from pineapple import backup, devices
+from pineapple.analysis import archive as analysis_archive
+from pineapple.analysis.case import CaseHandle, load_case
+from pineapple.analysis.errors import AnalysisError
+from pineapple.analysis.runner import AnalysisRun
 from pineapple.backup import DeviceBackup
 from pineapple.session import session
 from pineapple.syslog import SyslogStream
@@ -28,6 +34,8 @@ class Api:
     def __init__(self) -> None:
         self._syslog = SyslogStream(session)
         self._backup = DeviceBackup(session)
+        self._analysis = AnalysisRun(session)
+        self._case: CaseHandle | None = None
 
     def connected_device(self) -> dict[str, Any]:
         """The single-device view the UI needs: ``{"status": "none"}``,
@@ -152,3 +160,125 @@ class Api:
         except OSError as error:
             return {"ok": False, "error": str(error)}
         return {"ok": True, "path": str(path)}
+
+    # -- analysis (offline .pineapple parsing) -----------------------------
+
+    def choose_pineapple_file(self) -> dict[str, Any]:
+        """Ask the user to pick a ``.pineapple`` image to analyse."""
+        window = webview.windows[0]
+        result = window.create_file_dialog(
+            webview.FileDialog.OPEN,
+            file_types=("Pineapple image (*.pineapple)", "All files (*.*)"),
+        )
+        if not result:
+            return {"ok": False}
+        path = result if isinstance(result, str) else result[0]
+        return {"ok": True, "path": path}
+
+    def choose_case_folder(self) -> dict[str, Any]:
+        """Ask the user for the folder the analysis will live in."""
+        window = webview.windows[0]
+        result = window.create_file_dialog(webview.FileDialog.FOLDER)
+        if not result:
+            return {"ok": False}
+        path = result if isinstance(result, str) else result[0]
+        return {"ok": True, "path": path}
+
+    def analysis_peek(self, pineapple_path: str) -> dict[str, Any]:
+        """Device and encryption facts from the archive, before parsing.
+
+        ``{"ok": True, "encrypted": bool, "device": {...}, "default_title": str}``
+        or ``{"ok": False, "error": ...}``.
+        """
+        try:
+            metadata = analysis_archive.peek(pineapple_path)
+        except AnalysisError as error:
+            return {"ok": False, "error": str(error)}
+        return {
+            "ok": True,
+            "encrypted": metadata.is_encrypted,
+            "device": metadata.device_dict(),
+            "default_title": metadata.default_title,
+        }
+
+    def start_analysis(
+        self, pineapple_path: str, case_dir: str, title: str, password: str
+    ) -> dict[str, Any]:
+        """Begin parsing. ``title`` empty ⇒ the device serial; ``password`` is
+        ignored for an unencrypted image."""
+        try:
+            self._analysis.start(pineapple_path, case_dir, title, password)
+        except Exception as error:
+            return {"ok": False, "error": str(error)}
+        return {"ok": True}
+
+    def read_analysis_progress(self) -> dict[str, Any]:
+        """Snapshot of the running (or finished) parse; opens the case on ``done``."""
+        snapshot = self._analysis.progress()
+        if snapshot["phase"] == "done" and self._case is None and snapshot["case_path"]:
+            with contextlib.suppress(AnalysisError):
+                self._case = load_case(snapshot["case_path"])
+        return snapshot
+
+    def cancel_analysis(self) -> dict[str, Any]:
+        """Cancel a running parse; safe to call when none is running."""
+        self._analysis.cancel()
+        return {"ok": True}
+
+    def open_case(self, case_dir: str) -> dict[str, Any]:
+        """Load an existing case folder for browsing.
+
+        ``{"ok": True, "descriptor": {...}, "summary": {...}}`` or
+        ``{"ok": False, "error": ...}``.
+        """
+        if self._case is not None:
+            self._case.close()
+            self._case = None
+        try:
+            self._case = load_case(case_dir)
+        except AnalysisError as error:
+            return {"ok": False, "error": str(error)}
+        return {
+            "ok": True,
+            "descriptor": self._case.descriptor(),
+            "summary": self._case.summary(),
+        }
+
+    def analysis_summary(self) -> dict[str, Any]:
+        return self._case_query(lambda case: case.summary())
+
+    def analysis_apps(self) -> dict[str, Any]:
+        return self._case_query(lambda case: case.apps())
+
+    def analysis_domains(self) -> dict[str, Any]:
+        return self._case_query(lambda case: case.domains())
+
+    def analysis_files(
+        self,
+        domain: str | None = None,
+        search: str | None = None,
+        limit: int = 200,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.files(domain, search, limit, offset))
+
+    def analysis_messages(
+        self, search: str | None = None, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.messages(search, limit, offset))
+
+    def analysis_calls(self, limit: int = 200, offset: int = 0) -> dict[str, Any]:
+        return self._case_query(lambda case: case.calls(limit, offset))
+
+    def analysis_contacts(
+        self, search: str | None = None, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.contacts(search, limit, offset))
+
+    def _case_query(self, run: Callable[[CaseHandle], Any]) -> dict[str, Any]:
+        if self._case is None:
+            return {"ok": False, "error": "No analysis is open."}
+        try:
+            return {"ok": True, "result": run(self._case)}
+        except Exception as error:  # a corrupt analysis.db surfaces here
+            return {"ok": False, "error": str(error)}

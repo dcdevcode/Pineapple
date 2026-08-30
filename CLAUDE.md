@@ -22,7 +22,8 @@ inspects Apple devices connected over USB.
 - **Backend** (`backend/`): Python, [`uv`](https://docs.astral.sh/uv/) +
   `uv_build`, Python `>=3.14`. Device access via
   [`pymobiledevice3`](https://github.com/doronz88/pymobiledevice3); desktop window
-  via [`pywebview`](https://pywebview.flowrl.com/).
+  via [`pywebview`](https://pywebview.flowrl.com/); encrypted-backup decryption
+  via [`iphone_backup_decrypt`](https://github.com/jsharkey13/iphone_backup_decrypt).
 - **Frontend** (`frontend/`): Angular + Angular Material, **`pnpm` only**
   (never `npm`/`yarn`). Rendered inside the pywebview window.
 
@@ -35,16 +36,17 @@ inspects Apple devices connected over USB.
 | `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
 | `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
 | `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
-| `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup`, bound to `window.pywebview.api`. |
+| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `reader` (uniform access, encrypted via `iphone_backup_decrypt`), `schema` + `parsers/` (messages / calls / contacts / file index → `analysis.db`), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder and its read queries). |
+| `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup` / `analysis`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
-| `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. |
+| `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. `analysis_support.py` builds a tiny real on-disk backup + `.pineapple` and fakes `iphone_backup_decrypt`. |
 | `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
 | `frontend/src/app/settings/` | Settings: floating gear (`SettingsButton`) opens `SettingsDialog` (nav-rail shell); each section is its own component (`ThemeSettings`). `ThemeService` owns the light/dark/system preference. |
-| `frontend/src/app/analysis/` | Analysis tab: intentionally empty for now. |
+| `frontend/src/app/analysis/` | Analysis tab: browses a parsed `.pineapple` case. Backend is done; the Angular UI is not built yet. |
 | `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
 | `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / test / build) on every push and PR. |
 
@@ -138,6 +140,33 @@ buttons, emoji, purple, glassmorphism).
   `backing_up` / `packaging` / `restoring_encryption` / `done` / `error` /
   `cancelled`), `percent`, `note`, `output_path`. Same "Trust this computer"
   requirement as `get_device_info`.
+- `analysis/`: offline analysis of a saved `.pineapple` image (no device needed).
+  `archive.peek()` reads the three root plists straight from the zip (never
+  encrypted) for the device facts shown before parsing; `archive.extract()`
+  unpacks the whole archive as-is (encrypted blobs stay encrypted on disk).
+  `reader.open_reader()` returns a `PlainBackupReader` or, when `Manifest.plist`
+  says `IsEncrypted`, an `EncryptedBackupReader` wrapping
+  `iphone_backup_decrypt.EncryptedBackup` — a wrong password raises `AnalysisError`.
+  `runner.AnalysisRun` mirrors `DeviceBackup`: it runs on `session`, the pipeline
+  is a worker thread checking a cancellation `Event` between phases (`extracting`
+  / `opening` / `indexing` / `parsing` / `writing_descriptor` / `done` / `error`
+  / `cancelled`), and on cancel or failure it rolls back the partial
+  `analysis.db` and `<title>.json`. Only `Manifest.db` and the source DBs the
+  parsers need are decrypted (into `<case>/decrypted/`) — no bulk file
+  extraction yet. One analysis per case folder: `<title>.json` (the descriptor
+  the frontend lists / reopens; `<title>` defaults to the device serial),
+  `backup/<udid>/`, `decrypted/`, `analysis.db`. `case.load_case()` reopens a
+  folder and answers paginated read queries. Parsers (`messages` = `sms.db`,
+  `calls` = `CallHistory.storedata`, `contacts` = `AddressBook.sqlitedb`) are
+  tolerant: a missing or damaged source DB is recorded as skipped, not fatal.
+  All timestamps are stored as ISO-8601 UTC.
+- `api.py` analysis bridge: `choose_pineapple_file` / `choose_case_folder`
+  (native dialogs), `analysis_peek`, `start_analysis` / `read_analysis_progress`
+  / `cancel_analysis` drive one `AnalysisRun` (and load the case on `done`),
+  `open_case` loads an existing folder, and `analysis_summary` / `analysis_apps`
+  / `analysis_domains` / `analysis_files` / `analysis_messages` / `analysis_calls`
+  / `analysis_contacts` answer from the open `CaseHandle` in an
+  `{"ok": …, "result": …}` envelope.
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.
