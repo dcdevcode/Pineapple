@@ -13,11 +13,10 @@
   margin-bottom: 8px;
 }
 
-// A projected [tableFilter] control sits on the left; Search takes the far right
-// of the row (and wraps under it on a narrow window).
+// A projected [tableFilter] control (if any) sits first, Search next to it;
+// both wrap as a unit on a narrow window.
 .table__search {
   width: 260px;
-  margin-left: auto;
 }
 
 .table__status {

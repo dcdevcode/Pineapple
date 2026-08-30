@@ -1,7 +1,7 @@
 <div class="table">
-  <!-- Toolbar: an optional projected [tableFilter] control on the left, Search on
-       the right. Only rendered for a searchable table (every section that
-       projects a filter is also searchable). -->
+  <!-- Toolbar: an optional projected [tableFilter] control, then Search beside
+       it. Only rendered for a searchable table (every section that projects a
+       filter is also searchable). -->
   @if (searchable()) {
     <div class="table__toolbar">
       <ng-content select="[tableFilter]" />
