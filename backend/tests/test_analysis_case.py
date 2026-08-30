@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import plistlib
+import shutil
 import sqlite3
 import threading
 from pathlib import Path
 
 import pytest
 
-from analysis_support import BACKUP_FILE_COUNT, SERIAL, build_backup, file_id
+from analysis_support import (
+    BACKUP_FILE_COUNT,
+    SERIAL,
+    UDID,
+    build_backup,
+    file_id,
+)
 from pineapple.analysis.case import load_case
 from pineapple.analysis.descriptor import (
     CaseDescriptor,
@@ -28,6 +35,7 @@ def case_dir(tmp_path: Path) -> Path:
     backup = build_backup(tmp_path / "src")
     case = tmp_path / "case"
     case.mkdir()
+    shutil.copytree(backup, case / "backup" / UDID)
 
     info = plistlib.loads((backup / "Info.plist").read_bytes())
     manifest = plistlib.loads((backup / "Manifest.plist").read_bytes())
@@ -117,3 +125,47 @@ def test_load_case_rejects_a_schema_mismatch(case_dir: Path) -> None:
 
     with pytest.raises(AnalysisError, match="schema"):
         load_case(case_dir)
+
+
+def test_extract_file_writes_the_blob(case_dir: Path, tmp_path: Path) -> None:
+    handle = load_case(case_dir)
+    dest = tmp_path / "out" / "sms.db"
+    try:
+        handle.extract_file(file_id("HomeDomain", "Library/SMS/sms.db"), dest)
+    finally:
+        handle.close()
+
+    assert dest.is_file()
+    assert sqlite3.connect(dest).execute("SELECT COUNT(*) FROM message").fetchone()[0]
+
+
+def test_extract_file_refuses_a_directory_or_symlink(case_dir: Path) -> None:
+    handle = load_case(case_dir)
+    try:
+        with pytest.raises(AnalysisError):
+            handle.extract_file(
+                file_id("HomeDomain", "Library/SMS"), handle.case_dir / "x"
+            )
+        with pytest.raises(AnalysisError):
+            handle.extract_file(
+                file_id("HomeDomain", "Library/link"), handle.case_dir / "y"
+            )
+    finally:
+        handle.close()
+
+
+def test_preview_file_classifies_content(case_dir: Path) -> None:
+    handle = load_case(case_dir)
+    try:
+        sms = handle.preview_file(file_id("HomeDomain", "Library/SMS/sms.db"))
+        assert sms["kind"] in {"binary", "text"}
+        assert sms["name"] == "sms.db"
+
+        directory = handle.preview_file(file_id("HomeDomain", "Library/SMS"))
+        assert directory == {
+            "kind": "unavailable",
+            "reason": "directory",
+            "name": "SMS",
+        }
+    finally:
+        handle.close()

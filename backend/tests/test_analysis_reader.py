@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from analysis_support import FakeEncryptedBackup, build_backup
+from analysis_support import FakeEncryptedBackup, build_backup, file_id
 from pineapple.analysis import reader as reader_module
 from pineapple.analysis.errors import AnalysisError
 from pineapple.analysis.metadata import BackupMetadata
@@ -72,3 +72,34 @@ def test_extract_db_returns_none_when_absent(tmp_path: Path) -> None:
         assert _sms_path(tmp_path, plain) is None
     finally:
         plain.close()
+
+
+@pytest.mark.parametrize("encrypted", [False, True])
+def test_extract_file_and_read_bytes_by_file_id(
+    tmp_path: Path, encrypted: bool
+) -> None:
+    root = build_backup(tmp_path / "src", encrypted=encrypted)
+    reader = open_reader(
+        root,
+        BackupMetadata(is_encrypted=encrypted),
+        FakeEncryptedBackup.PASSWORD if encrypted else "",
+        tmp_path / "w",
+    )
+    fid = file_id("HomeDomain", "Library/SMS/sms.db")
+    try:
+        head = reader.read_bytes(fid, "Library/SMS/sms.db", "HomeDomain", 16)
+        assert head is not None
+        assert head.startswith(b"SQLite format 3")
+
+        dest = tmp_path / "out" / "sms.db"
+        written = reader.extract_file(fid, "Library/SMS/sms.db", "HomeDomain", dest)
+        assert written == dest
+        assert dest.read_bytes()[:16] == head
+
+        missing = file_id("HomeDomain", "nope")
+        assert reader.read_bytes(missing, "nope", "HomeDomain", 16) is None
+        assert (
+            reader.extract_file(missing, "nope", "HomeDomain", tmp_path / "z") is None
+        )
+    finally:
+        reader.close()

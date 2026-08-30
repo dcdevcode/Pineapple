@@ -4,10 +4,18 @@ Each query opens its own short-lived ``sqlite3`` connection: pywebview answers
 bridge calls on a small thread pool, and a SQLite connection may only be used on
 the thread that created it, so a persistent connection would break as soon as a
 second call landed on a different worker thread.
+
+A :class:`CaseHandle` also lends read access to the backup itself -- extracting
+one file, or a size-capped preview of its contents. That needs the decryption
+password for an encrypted backup; it is supplied at load time or later via
+:meth:`CaseHandle.set_password`, and is held only in memory.
 """
 
 from __future__ import annotations
 
+import base64
+import datetime as dt
+import plistlib
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -19,28 +27,119 @@ from pineapple.analysis.descriptor import (
     read_descriptor,
 )
 from pineapple.analysis.errors import AnalysisError
+from pineapple.analysis.reader import (
+    BackupReader,
+    EncryptedBackupReader,
+    PlainBackupReader,
+)
 from pineapple.analysis.schema import SCHEMA_VERSION
 
 ANALYSIS_DB = "analysis.db"
 DEFAULT_PAGE = 200
 MAX_PAGE = 2000
+PREVIEW_MAX_BYTES = 5 * 1024 * 1024
 
-_COUNT_TABLES = ("apps", "files", "messages", "calls", "contacts")
+_COUNT_TABLES = (
+    "apps",
+    "files",
+    "messages",
+    "calls",
+    "contacts",
+    "notes",
+    "safari_history",
+    "safari_bookmarks",
+    "whatsapp_chats",
+    "whatsapp_messages",
+)
+
+_IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"GIF87a", "image/gif"),
+    (b"GIF89a", "image/gif"),
+)
 
 
 def _page(limit: int, offset: int) -> tuple[int, int]:
     return max(1, min(int(limit), MAX_PAGE)), max(0, int(offset))
 
 
+def _json_safe(value: Any) -> Any:
+    """Make a ``plistlib`` result JSON-serialisable for the bridge envelope."""
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, bytes):
+        return base64.b64encode(value).decode("ascii")
+    if isinstance(value, (dt.datetime, dt.date)):
+        return value.isoformat()
+    if isinstance(value, plistlib.UID):
+        return value.data
+    return value
+
+
+def _image_mime(data: bytes) -> str | None:
+    for signature, mime in _IMAGE_SIGNATURES:
+        if data.startswith(signature):
+            return mime
+    if data[4:12] in {b"ftypheic", b"ftypheix", b"ftypmif1"}:
+        return "image/heic"
+    return None
+
+
+def _as_plist_json(data: bytes) -> Any | None:
+    looks_like_plist = data.startswith(b"bplist00") or (
+        data.lstrip().startswith(b"<?xml") and b"<plist" in data[:512]
+    )
+    if not looks_like_plist:
+        return None
+    try:
+        return _json_safe(plistlib.loads(data))
+    except plistlib.InvalidFileException, ValueError, OverflowError:
+        return None
+
+
+def _sniff(data: bytes, truncated: bool) -> dict[str, Any]:
+    """Classify a file preview payload: image / plist / text / binary."""
+    mime = _image_mime(data)
+    if mime is not None:
+        return {
+            "kind": "image",
+            "mime": mime,
+            "data_base64": base64.b64encode(data).decode("ascii"),
+            "truncated": truncated,
+        }
+    if not truncated:
+        plist_json = _as_plist_json(data)
+        if plist_json is not None:
+            return {"kind": "plist", "json": plist_json}
+    try:
+        return {"kind": "text", "text": data.decode("utf-8"), "truncated": truncated}
+    except UnicodeDecodeError:
+        return {"kind": "binary", "size": len(data), "truncated": truncated}
+
+
 class CaseHandle:
-    """A loaded case: its descriptor plus read access to ``analysis.db``."""
+    """A loaded case: its descriptor, read access to ``analysis.db`` and (on
+    demand) to the backup files themselves."""
 
     def __init__(
-        self, case_dir: Path, descriptor: CaseDescriptor, database: Path
+        self,
+        case_dir: Path,
+        descriptor: CaseDescriptor,
+        database: Path,
+        backup_root: Path,
+        is_encrypted: bool,
+        password: str | None = None,
     ) -> None:
         self.case_dir = case_dir
         self._descriptor = descriptor
         self._database = database
+        self._backup_root = backup_root
+        self._is_encrypted = is_encrypted
+        self._password = password
+        self._reader: BackupReader | None = None
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(f"file:{self._database}?mode=ro", uri=True)
@@ -65,6 +164,8 @@ class CaseHandle:
             "source": self._descriptor.source,
             "parse": self._descriptor.parse,
             "counts": counts,
+            "is_encrypted": self._is_encrypted,
+            "files_unlocked": self.files_unlocked(),
         }
 
     # -- artifact queries ------------------------------------------------
@@ -157,10 +258,187 @@ class CaseHandle:
             offset,
         )
 
+    def notes(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        where = ""
+        params: list[Any] = []
+        if search:
+            where = "WHERE title LIKE ? OR snippet LIKE ? OR body LIKE ?"
+            params = [f"%{search}%"] * 3
+        return self._page_query(
+            "SELECT rowid, folder, title, snippet, body, created_utc, modified_utc "
+            f"FROM notes {where} ORDER BY modified_utc DESC",
+            f"SELECT COUNT(*) FROM notes {where}",
+            params,
+            limit,
+            offset,
+        )
+
+    def safari_history(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        where = ""
+        params: list[Any] = []
+        if search:
+            where = "WHERE url LIKE ? OR title LIKE ?"
+            params = [f"%{search}%"] * 2
+        return self._page_query(
+            "SELECT rowid, url, title, visit_utc, visit_count "
+            f"FROM safari_history {where} ORDER BY visit_utc DESC",
+            f"SELECT COUNT(*) FROM safari_history {where}",
+            params,
+            limit,
+            offset,
+        )
+
+    def safari_bookmarks(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        where = ""
+        params: list[Any] = []
+        if search:
+            where = "WHERE title LIKE ? OR url LIKE ? OR folder LIKE ?"
+            params = [f"%{search}%"] * 3
+        return self._page_query(
+            "SELECT rowid, title, url, folder "
+            f"FROM safari_bookmarks {where} ORDER BY folder, title",
+            f"SELECT COUNT(*) FROM safari_bookmarks {where}",
+            params,
+            limit,
+            offset,
+        )
+
+    def whatsapp_chats(
+        self, limit: int = DEFAULT_PAGE, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._page_query(
+            "SELECT rowid, jid, name, last_message_utc, message_count "
+            "FROM whatsapp_chats ORDER BY last_message_utc DESC",
+            "SELECT COUNT(*) FROM whatsapp_chats",
+            [],
+            limit,
+            offset,
+        )
+
+    def whatsapp_messages(
+        self,
+        chat_jid: str | None = None,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if chat_jid:
+            clauses.append("chat_jid = ?")
+            params.append(chat_jid)
+        if search:
+            clauses.append("text LIKE ?")
+            params.append(f"%{search}%")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        return self._page_query(
+            "SELECT rowid, chat_jid, chat_name, from_me, sender, date_utc, text, "
+            f"media_type FROM whatsapp_messages {where} ORDER BY date_utc",
+            f"SELECT COUNT(*) FROM whatsapp_messages {where}",
+            params,
+            limit,
+            offset,
+        )
+
+    # -- backup file access -------------------------------------------------
+
+    def files_unlocked(self) -> bool:
+        """Whether the backup files can be read (an encrypted case needs a key)."""
+        if not self._is_encrypted:
+            return True
+        try:
+            self._backup_reader()
+        except AnalysisError:
+            return False
+        return True
+
+    def set_password(self, password: str) -> None:
+        """Supply (or replace) the decryption key for an encrypted backup."""
+        if self._reader is not None:
+            self._reader.close()
+            self._reader = None
+        self._password = password
+        self._backup_reader()  # validate now; raises AnalysisError on a bad key
+
+    def extract_file(self, file_id: str, dest: Path) -> Path:
+        """Copy/decrypt one backup file to ``dest``. Regular files only."""
+        row = self._file_row(file_id)
+        if row["is_dir"] or row["target"]:
+            raise AnalysisError("Only regular files can be extracted.")
+        out = self._backup_reader().extract_file(
+            file_id, row["relative_path"], row["domain"], dest
+        )
+        if out is None:
+            raise AnalysisError("The backup does not contain this file's data.")
+        return out
+
+    def preview_file(self, file_id: str) -> dict[str, Any]:
+        """A size-capped, classified preview of one backup file's contents."""
+        row = self._file_row(file_id)
+        name = Path(row["relative_path"]).name
+        if row["is_dir"]:
+            return {"kind": "unavailable", "reason": "directory", "name": name}
+        if row["target"]:
+            return {
+                "kind": "unavailable",
+                "reason": "symlink",
+                "name": name,
+                "target": row["target"],
+            }
+        data = self._backup_reader().read_bytes(
+            file_id, row["relative_path"], row["domain"], PREVIEW_MAX_BYTES + 1
+        )
+        if data is None:
+            return {"kind": "unavailable", "reason": "not-in-backup", "name": name}
+        truncated = len(data) > PREVIEW_MAX_BYTES
+        result = _sniff(data[:PREVIEW_MAX_BYTES], truncated)
+        result["name"] = name
+        result["size"] = row["size"]
+        return result
+
     def close(self) -> None:
-        """Kept for API symmetry; no persistent connection is held."""
+        if self._reader is not None:
+            self._reader.close()
+            self._reader = None
 
     # -- internals ------------------------------------------------------
+
+    def _backup_reader(self) -> BackupReader:
+        if self._reader is None:
+            work_dir = self.case_dir / "decrypted"
+            if self._is_encrypted:
+                self._reader = EncryptedBackupReader(
+                    self._backup_root, self._password or "", work_dir
+                )
+            else:
+                self._reader = PlainBackupReader(self._backup_root, work_dir)
+        return self._reader
+
+    def _file_row(self, file_id: str) -> dict[str, Any]:
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                "SELECT relative_path, domain, is_dir, size, target "
+                "FROM files WHERE file_id = ?",
+                (file_id,),
+            ).fetchone()
+        if row is None:
+            raise AnalysisError("No such file in this backup.")
+        return dict(row)
 
     @staticmethod
     def _files_where(domain: str | None, search: str | None) -> tuple[str, list[Any]]:
@@ -197,7 +475,7 @@ class CaseHandle:
         }
 
 
-def load_case(case_dir: str | Path) -> CaseHandle:
+def load_case(case_dir: str | Path, password: str | None = None) -> CaseHandle:
     """Open an existing case folder. Raises :class:`AnalysisError` when it is
     not a case, or was written by an incompatible schema version."""
     path = Path(case_dir)
@@ -217,9 +495,13 @@ def load_case(case_dir: str | Path) -> CaseHandle:
         version = conn.execute(
             "SELECT value FROM case_meta WHERE key = 'schema_version'"
         ).fetchone()
+        udid_row = conn.execute("SELECT udid FROM backup_info LIMIT 1").fetchone()
     if version is not None and int(version[0]) != SCHEMA_VERSION:
         raise AnalysisError(
             f"{ANALYSIS_DB} was written by schema v{version[0]}; "
             f"this build expects v{SCHEMA_VERSION}."
         )
-    return CaseHandle(path, descriptor, database)
+    udid = udid_row[0] if udid_row and udid_row[0] else None
+    backup_root = path / "backup" / udid if udid else path / "backup"
+    is_encrypted = bool(descriptor.source.get("is_encrypted"))
+    return CaseHandle(path, descriptor, database, backup_root, is_encrypted, password)

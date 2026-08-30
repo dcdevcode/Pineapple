@@ -419,3 +419,13 @@ class FakeEncryptedBackup:
             raise FileNotFoundError(relative_path)
         Path(output_filename).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(blob, output_filename)
+
+    def extract_file_as_bytes(
+        self, relative_path: str, *, domain_like: str | None = None
+    ) -> bytes:
+        self.test_decryption()
+        fid = file_id(domain_like or "HomeDomain", relative_path)
+        blob = self._root / fid[:2] / fid
+        if not blob.is_file():
+            raise FileNotFoundError(relative_path)
+        return blob.read_bytes()

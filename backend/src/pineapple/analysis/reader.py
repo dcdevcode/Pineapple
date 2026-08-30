@@ -40,6 +40,20 @@ class BackupReader(Protocol):
         does not contain it.
         """
 
+    def extract_file(
+        self, file_id: str, relative_path: str, domain: str, dest: Path
+    ) -> Path | None:
+        """Decrypt/copy one backup file to ``dest`` (a full path).
+
+        Regular files only. Returns ``dest``, or ``None`` when the file's data is
+        not in the backup.
+        """
+
+    def read_bytes(
+        self, file_id: str, relative_path: str, domain: str, max_bytes: int
+    ) -> bytes | None:
+        """Return up to ``max_bytes`` of one backup file, or ``None`` if absent."""
+
     def close(self) -> None:
         """Release the manifest connection and any temp state."""
 
@@ -105,6 +119,25 @@ class PlainBackupReader:
                 )
         return dest
 
+    def extract_file(
+        self, file_id: str, relative_path: str, domain: str, dest: Path
+    ) -> Path | None:
+        blob = self._blob_path(file_id)
+        if not blob.is_file():
+            return None
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(blob, dest)
+        return dest
+
+    def read_bytes(
+        self, file_id: str, relative_path: str, domain: str, max_bytes: int
+    ) -> bytes | None:
+        blob = self._blob_path(file_id)
+        if not blob.is_file():
+            return None
+        with blob.open("rb") as handle:
+            return handle.read(max_bytes)
+
     def close(self) -> None:
         if self._conn is not None:
             self._conn.close()
@@ -157,6 +190,29 @@ class EncryptedBackupReader:
                     output_filename=str(dest.with_name(dest.name + suffix)),
                 )
         return dest
+
+    def extract_file(
+        self, file_id: str, relative_path: str, domain: str, dest: Path
+    ) -> Path | None:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self._backup.extract_file(
+                relative_path=relative_path,
+                domain_like=domain,
+                output_filename=str(dest),
+            )
+        except FileNotFoundError:
+            return None
+        return dest
+
+    def read_bytes(
+        self, file_id: str, relative_path: str, domain: str, max_bytes: int
+    ) -> bytes | None:
+        try:
+            data = self._backup.extract_file_as_bytes(relative_path, domain_like=domain)
+        except FileNotFoundError:
+            return None
+        return bytes(data[:max_bytes])
 
     def close(self) -> None:
         if self._conn is not None:
