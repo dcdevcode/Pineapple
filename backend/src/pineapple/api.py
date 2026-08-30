@@ -9,7 +9,6 @@ Method names are snake_case because they appear verbatim as
 """
 
 import asyncio
-import contextlib
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -21,7 +20,6 @@ from pineapple import backup, devices
 from pineapple.analysis import archive as analysis_archive
 from pineapple.analysis.case import CaseHandle, load_case
 from pineapple.analysis.descriptor import safe_filename
-from pineapple.analysis.errors import AnalysisError
 from pineapple.analysis.runner import AnalysisRun
 from pineapple.backup import DeviceBackup
 from pineapple.session import session
@@ -189,7 +187,7 @@ class Api:
         """
         try:
             metadata = analysis_archive.peek(pineapple_path)
-        except AnalysisError as error:
+        except Exception as error:
             return {"ok": False, "error": str(error)}
         return {
             "ok": True,
@@ -213,11 +211,21 @@ class Api:
         return {"ok": True}
 
     def read_analysis_progress(self) -> dict[str, Any]:
-        """Snapshot of the running (or finished) parse; opens the case on ``done``."""
+        """Snapshot of the running (or finished) parse; opens the case on ``done``.
+
+        If the finished case cannot be opened the snapshot is turned into an
+        ``error`` so the UI reports it instead of silently never showing the
+        browser.
+        """
         snapshot = self._analysis.progress()
         if snapshot["phase"] == "done" and self._case is None and snapshot["case_path"]:
-            with contextlib.suppress(AnalysisError):
+            try:
                 self._case = load_case(snapshot["case_path"], self._case_password)
+            except Exception as error:
+                snapshot["phase"] = "error"
+                snapshot["error"] = (
+                    f"Analysis finished but the case could not be opened: {error}"
+                )
         return snapshot
 
     def cancel_analysis(self) -> dict[str, Any]:
@@ -244,7 +252,7 @@ class Api:
         self._case_dir = target
         try:
             self._case = load_case(str(target), self._case_password)
-        except AnalysisError as error:
+        except Exception as error:
             return {"ok": False, "error": str(error)}
         return {
             "ok": True,
@@ -258,10 +266,15 @@ class Api:
             return {"ok": False, "error": "No analysis is open."}
         try:
             self._case.set_password(password)
-        except AnalysisError as error:
+        except Exception as error:
             return {"ok": False, "error": str(error)}
         self._case_password = password
         return {"ok": True, "summary": self._case.summary()}
+
+    # Read queries against the open case. Each just unwraps its ``CaseHandle``
+    # method through ``_case_query`` (which adds the ``{"ok": ..., "result": ...}``
+    # envelope and the "no analysis is open" guard); see ``case.py`` for what
+    # each returns.
 
     def analysis_summary(self) -> dict[str, Any]:
         return self._case_query(lambda case: case.summary())
@@ -341,7 +354,7 @@ class Api:
             return {"ok": False, "error": "No analysis is open."}
         try:
             suggested = self._case.file_name(file_id)
-        except AnalysisError as error:
+        except Exception as error:
             return {"ok": False, "error": str(error)}
         window = webview.windows[0]
         result = window.create_file_dialog(
@@ -352,7 +365,7 @@ class Api:
         dest = Path(result if isinstance(result, str) else result[0])
         try:
             self._case.extract_file(file_id, dest)
-        except AnalysisError as error:
+        except Exception as error:
             return {"ok": False, "error": str(error)}
         return {"ok": True, "path": str(dest)}
 
