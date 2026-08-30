@@ -140,7 +140,7 @@ class AnalysisRun:
             return
         self._cancelled.set()
         self._session.cancel(task)
-        self._session.run(_drain(task))
+        self._session.drain(task, TEARDOWN_TIMEOUT)
 
     # -- internals ------------------------------------------------------
 
@@ -316,7 +316,3 @@ class AnalysisRun:
     def _cleanup_partial(self, params: _Params) -> None:
         (params.case_dir / ANALYSIS_DB).unlink(missing_ok=True)
         descriptor_path(params.case_dir, params.title).unlink(missing_ok=True)
-
-
-async def _drain(task: asyncio.Task[Any]) -> None:
-    await asyncio.wait({task}, timeout=TEARDOWN_TIMEOUT)

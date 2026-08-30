@@ -20,14 +20,12 @@ import webview
 from pineapple import backup, devices
 from pineapple.analysis import archive as analysis_archive
 from pineapple.analysis.case import CaseHandle, load_case
+from pineapple.analysis.descriptor import safe_filename
 from pineapple.analysis.errors import AnalysisError
 from pineapple.analysis.runner import AnalysisRun
 from pineapple.backup import DeviceBackup
 from pineapple.session import session
 from pineapple.syslog import SyslogStream
-
-# Characters a device name may contain that must not reach a file name.
-_UNSAFE_NAME_CHARS = set('/\\:*?"<>|')
 
 
 class Api:
@@ -108,13 +106,7 @@ class Api:
 
         ``{"ok": True, "path": ...}``, or ``{"ok": False}`` when cancelled.
         """
-        safe_name = (
-            "".join(
-                "_" if character in _UNSAFE_NAME_CHARS else character
-                for character in device_name
-            ).strip()
-            or "device"
-        )
+        safe_name = safe_filename(device_name, fallback="device")
         stamp = datetime.now().strftime("%Y-%m-%d %H%M%S")
         window = webview.windows[0]
         result = window.create_file_dialog(

@@ -56,6 +56,22 @@ class DeviceSession:
         """Request cancellation of a task created by :meth:`spawn`."""
         self._loop.call_soon_threadsafe(task.cancel)
 
+    def drain(self, task: asyncio.Task[Any], timeout: float) -> None:
+        """Block until ``task`` finishes or ``timeout`` elapses, ignoring its
+        outcome.
+
+        Used after :meth:`cancel` so a slow or failing teardown cannot hang the
+        caller. ``asyncio.wait`` neither re-cancels the task nor re-raises its
+        exception.
+        """
+        self.run(asyncio.wait({task}, timeout=timeout))
+
+    def close(self) -> None:
+        """Stop the loop and join its thread. For tests / a clean shutdown; the
+        process-wide singleton normally runs for the process lifetime."""
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join(timeout=5.0)
+
 
 # One session for the whole process; imported by the Api bridge.
 session = DeviceSession()

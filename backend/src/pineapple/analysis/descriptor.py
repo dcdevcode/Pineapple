@@ -22,21 +22,25 @@ _UNSAFE_NAME_CHARS = set('/\\:*?"<>|')
 
 
 def tool_version() -> str:
+    """The installed ``pineapple`` version, or ``"0.0.0"`` when running from a
+    source tree with no metadata."""
     try:
         return version("pineapple")
     except PackageNotFoundError:
         return "0.0.0"
 
 
-def safe_filename(title: str) -> str:
-    """A file-name-safe form of a case title (never a path, just a leaf name)."""
+def safe_filename(title: str, fallback: str = "analysis") -> str:
+    """A file-name-safe form of ``title`` (never a path, just a leaf name);
+    ``fallback`` when it reduces to nothing."""
     cleaned = "".join(
         "_" if char in _UNSAFE_NAME_CHARS else char for char in title
     ).strip()
-    return cleaned or "analysis"
+    return cleaned or fallback
 
 
 def sha256_file(path: Path) -> str:
+    """The SHA-256 hex digest of a file, read in 1 MiB chunks."""
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -55,10 +59,13 @@ class CaseDescriptor:
     schema_version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, Any]:
+        """The descriptor as a plain dict, ready to serialise to ``<title>.json``."""
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CaseDescriptor:
+        """Rebuild from a parsed ``<title>.json``; raises :class:`AnalysisError`
+        when the required ``title`` key is missing."""
         try:
             return cls(
                 title=data["title"],
@@ -74,6 +81,7 @@ class CaseDescriptor:
 
 
 def descriptor_path(case_dir: Path, title: str) -> Path:
+    """Where the ``<title>.json`` descriptor for ``title`` lives in ``case_dir``."""
     return case_dir / f"{safe_filename(title)}.json"
 
 

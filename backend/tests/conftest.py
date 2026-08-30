@@ -11,5 +11,4 @@ from pineapple.session import DeviceSession
 def device_session() -> Iterator[DeviceSession]:
     session = DeviceSession()
     yield session
-    session._loop.call_soon_threadsafe(session._loop.stop)
-    session._thread.join(timeout=1)
+    session.close()

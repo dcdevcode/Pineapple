@@ -52,3 +52,16 @@ def test_spawn_runs_on_the_loop_and_cancel_stops_it(
 def test_the_loop_runs_on_a_daemon_thread(device_session: DeviceSession) -> None:
     assert device_session._thread.daemon
     assert device_session._thread.is_alive()
+
+
+def test_close_stops_the_loop_thread() -> None:
+    session = DeviceSession()
+    assert session.run(_return_one()) == 1
+
+    session.close()
+
+    assert not session._thread.is_alive()
+
+
+async def _return_one() -> int:
+    return 1

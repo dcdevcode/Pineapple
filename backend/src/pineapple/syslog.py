@@ -26,16 +26,6 @@ BUFFER_SIZE = 5000
 TEARDOWN_TIMEOUT = 5.0
 
 
-async def _drain(task: asyncio.Task[Any]) -> None:
-    """Wait for a cancelled reader task to finish its cleanup.
-
-    A slow or failing teardown must not block :meth:`SyslogStream.stop`, so this
-    waits at most ``TEARDOWN_TIMEOUT`` and never looks at the task's outcome.
-    ``asyncio.wait`` neither re-cancels the task nor propagates its exception.
-    """
-    await asyncio.wait({task}, timeout=TEARDOWN_TIMEOUT)
-
-
 @dataclass(frozen=True)
 class SyslogLine:
     """One decoded syslog entry, flattened for the frontend."""
@@ -108,7 +98,7 @@ class SyslogStream:
         task, self._task = self._task, None
         if task is not None:
             self._session.cancel(task)
-            self._session.run(_drain(task))
+            self._session.drain(task, TEARDOWN_TIMEOUT)
 
     def read(self) -> dict[str, Any]:
         """Drain buffered lines and report stream status."""

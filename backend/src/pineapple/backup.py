@@ -144,7 +144,7 @@ class DeviceBackup:
             return
         self._cancelled.set()
         self._session.cancel(task)
-        self._session.run(_drain(task))
+        self._session.drain(task, TEARDOWN_TIMEOUT)
 
     # -- internals, all running on the session loop ------------------------
 
@@ -290,8 +290,3 @@ class DeviceBackup:
             )
         else:
             self._set(note="Restored the device's original backup-encryption setting.")
-
-
-async def _drain(task: asyncio.Task[Any]) -> None:
-    """Wait at most ``TEARDOWN_TIMEOUT`` for a cancelled task, ignoring outcome."""
-    await asyncio.wait({task}, timeout=TEARDOWN_TIMEOUT)
