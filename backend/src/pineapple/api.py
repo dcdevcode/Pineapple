@@ -36,6 +36,8 @@ class Api:
         self._backup = DeviceBackup(session)
         self._analysis = AnalysisRun(session)
         self._case: CaseHandle | None = None
+        # Decryption key for the open case's backup files. In memory only.
+        self._case_password: str | None = None
 
     def connected_device(self) -> dict[str, Any]:
         """The single-device view the UI needs: ``{"status": "none"}``,
@@ -210,6 +212,8 @@ class Api:
             self._analysis.start(pineapple_path, case_dir, title, password)
         except Exception as error:
             return {"ok": False, "error": str(error)}
+        # Keep the key so the finished case can read its own backup files.
+        self._case_password = password or None
         return {"ok": True}
 
     def read_analysis_progress(self) -> dict[str, Any]:
@@ -217,7 +221,7 @@ class Api:
         snapshot = self._analysis.progress()
         if snapshot["phase"] == "done" and self._case is None and snapshot["case_path"]:
             with contextlib.suppress(AnalysisError):
-                self._case = load_case(snapshot["case_path"])
+                self._case = load_case(snapshot["case_path"], self._case_password)
         return snapshot
 
     def cancel_analysis(self) -> dict[str, Any]:
@@ -225,8 +229,9 @@ class Api:
         self._analysis.cancel()
         return {"ok": True}
 
-    def open_case(self, case_dir: str) -> dict[str, Any]:
-        """Load an existing case folder for browsing.
+    def open_case(self, case_dir: str, password: str = "") -> dict[str, Any]:
+        """Load an existing case folder for browsing. ``password`` is optional and
+        only used to unlock file extraction/preview for an encrypted backup.
 
         ``{"ok": True, "descriptor": {...}, "summary": {...}}`` or
         ``{"ok": False, "error": ...}``.
@@ -234,8 +239,9 @@ class Api:
         if self._case is not None:
             self._case.close()
             self._case = None
+        self._case_password = password or None
         try:
-            self._case = load_case(case_dir)
+            self._case = load_case(case_dir, self._case_password)
         except AnalysisError as error:
             return {"ok": False, "error": str(error)}
         return {
@@ -243,6 +249,17 @@ class Api:
             "descriptor": self._case.descriptor(),
             "summary": self._case.summary(),
         }
+
+    def analysis_unlock(self, password: str) -> dict[str, Any]:
+        """Supply the decryption key for the open (encrypted) case's backup files."""
+        if self._case is None:
+            return {"ok": False, "error": "No analysis is open."}
+        try:
+            self._case.set_password(password)
+        except AnalysisError as error:
+            return {"ok": False, "error": str(error)}
+        self._case_password = password
+        return {"ok": True, "summary": self._case.summary()}
 
     def analysis_summary(self) -> dict[str, Any]:
         return self._case_query(lambda case: case.summary())
@@ -274,6 +291,68 @@ class Api:
         self, search: str | None = None, limit: int = 200, offset: int = 0
     ) -> dict[str, Any]:
         return self._case_query(lambda case: case.contacts(search, limit, offset))
+
+    def analysis_notes(
+        self, search: str | None = None, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.notes(search, limit, offset))
+
+    def analysis_safari_history(
+        self, search: str | None = None, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.safari_history(search, limit, offset))
+
+    def analysis_safari_bookmarks(
+        self, search: str | None = None, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(
+            lambda case: case.safari_bookmarks(search, limit, offset)
+        )
+
+    def analysis_whatsapp_chats(
+        self, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.whatsapp_chats(limit, offset))
+
+    def analysis_whatsapp_messages(
+        self,
+        chat_jid: str | None = None,
+        search: str | None = None,
+        limit: int = 200,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        return self._case_query(
+            lambda case: case.whatsapp_messages(chat_jid, search, limit, offset)
+        )
+
+    def analysis_preview_file(self, file_id: str) -> dict[str, Any]:
+        """A size-capped, classified preview of one backup file's contents."""
+        return self._case_query(lambda case: case.preview_file(file_id))
+
+    def analysis_extract_file(self, file_id: str) -> dict[str, Any]:
+        """Save one backup file to a path the user picks.
+
+        ``{"ok": True, "path": ...}``, ``{"ok": False}`` when the dialog is
+        cancelled, or ``{"ok": False, "error": ...}``.
+        """
+        if self._case is None:
+            return {"ok": False, "error": "No analysis is open."}
+        try:
+            suggested = self._case.file_name(file_id)
+        except AnalysisError as error:
+            return {"ok": False, "error": str(error)}
+        window = webview.windows[0]
+        result = window.create_file_dialog(
+            webview.FileDialog.SAVE, save_filename=suggested
+        )
+        if not result:
+            return {"ok": False}
+        dest = Path(result if isinstance(result, str) else result[0])
+        try:
+            self._case.extract_file(file_id, dest)
+        except AnalysisError as error:
+            return {"ok": False, "error": str(error)}
+        return {"ok": True, "path": str(dest)}
 
     def _case_query(self, run: Callable[[CaseHandle], Any]) -> dict[str, Any]:
         if self._case is None:

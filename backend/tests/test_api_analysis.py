@@ -12,10 +12,21 @@ from analysis_support import (
     SERIAL,
     FakeEncryptedBackup,
     build_backup,
+    file_id,
     make_pineapple,
 )
 from pineapple.analysis import reader as reader_module
 from pineapple.api import Api
+
+
+def _run_to_done(api: Api, image: Path, case_dir: Path, password: str = "") -> None:
+    assert api.start_analysis(str(image), str(case_dir), "", password)["ok"]
+    deadline = time.monotonic() + 5.0
+    snapshot = api.read_analysis_progress()
+    while snapshot["phase"] not in {"done", "error"} and time.monotonic() < deadline:
+        time.sleep(0.02)
+        snapshot = api.read_analysis_progress()
+    assert snapshot["phase"] == "done", snapshot
 
 
 class FakeDialogWindow:
@@ -92,6 +103,64 @@ def test_start_read_and_open_flow(image: Path, tmp_path: Path) -> None:
     reopened = api.open_case(str(case_dir))
     assert reopened["ok"] is True
     assert reopened["descriptor"]["title"] == SERIAL
+
+
+def test_new_artifact_queries_answer_from_the_case(image: Path, tmp_path: Path) -> None:
+    api = Api()
+    _run_to_done(api, image, tmp_path / "case")
+
+    assert api.analysis_notes()["result"]["total"] == 1
+    assert api.analysis_safari_history()["result"]["total"] == 2
+    assert api.analysis_safari_bookmarks()["result"]["total"] == 1
+    assert api.analysis_whatsapp_chats()["result"]["total"] == 1
+    scoped = api.analysis_whatsapp_messages(chat_jid="1555000@s.whatsapp.net")
+    assert scoped["result"]["total"] == 2
+
+
+def test_preview_and_extract_a_file(
+    image: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = Api()
+    _run_to_done(api, image, tmp_path / "case")
+    sms_id = file_id("HomeDomain", "Library/SMS/sms.db")
+
+    preview = api.analysis_preview_file(sms_id)
+    assert preview["ok"] is True
+    assert preview["result"]["name"] == "sms.db"
+
+    dest = tmp_path / "saved.db"
+    window = FakeDialogWindow([str(dest)])
+    monkeypatch.setattr("pineapple.api.webview.windows", [window])
+    result = api.analysis_extract_file(sms_id)
+
+    assert result == {"ok": True, "path": str(dest)}
+    assert dest.is_file()
+    assert window.calls[0][1]["save_filename"] == "sms.db"
+
+
+def test_extract_file_dialog_cancelled(
+    image: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = Api()
+    _run_to_done(api, image, tmp_path / "case")
+    monkeypatch.setattr("pineapple.api.webview.windows", [FakeDialogWindow(None)])
+    assert api.analysis_extract_file(file_id("HomeDomain", "Library/SMS/sms.db")) == {
+        "ok": False
+    }
+
+
+def test_unlock_rejects_a_wrong_key_for_an_encrypted_case(
+    tmp_path: Path,
+) -> None:
+    root = build_backup(tmp_path / "src", encrypted=True)
+    image = make_pineapple(root, tmp_path / "image.pineapple")
+    api = Api()
+    _run_to_done(api, image, tmp_path / "case", password=FakeEncryptedBackup.PASSWORD)
+
+    # Parsed with the right key; the case starts unlocked.
+    assert api.analysis_summary()["result"]["files_unlocked"] is True
+    assert api.analysis_unlock("wrong")["ok"] is False
+    assert api.analysis_unlock(FakeEncryptedBackup.PASSWORD)["ok"] is True
 
 
 def test_start_analysis_wraps_a_refusal() -> None:

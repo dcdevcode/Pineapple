@@ -375,6 +375,10 @@ class CaseHandle:
         self._password = password
         self._backup_reader()  # validate now; raises AnalysisError on a bad key
 
+    def file_name(self, file_id: str) -> str:
+        """The basename of one backup file (raises if the id is unknown)."""
+        return Path(self._file_row(file_id)["relative_path"]).name
+
     def extract_file(self, file_id: str, dest: Path) -> Path:
         """Copy/decrypt one backup file to ``dest``. Regular files only."""
         row = self._file_row(file_id)
