@@ -29,7 +29,7 @@ from pineapple.analysis.errors import AnalysisError
 from pineapple.analysis.metadata import from_plists
 from pineapple.analysis.parsers import index_apps, index_backup_info, index_files
 from pineapple.analysis.parsers.messages import parse_messages
-from pineapple.analysis.schema import initialize
+from pineapple.analysis.schema import SCHEMA_VERSION, initialize
 
 
 @pytest.fixture
@@ -122,7 +122,9 @@ def test_load_case_rejects_a_plain_folder(tmp_path: Path) -> None:
 
 def test_load_case_rejects_a_schema_mismatch(case_dir: Path) -> None:
     path = descriptor_path(case_dir, SERIAL)
-    data = path.read_text().replace('"schema_version": 2', '"schema_version": 99')
+    data = path.read_text().replace(
+        f'"schema_version": {SCHEMA_VERSION}', '"schema_version": 99'
+    )
     path.write_text(data)
 
     with pytest.raises(AnalysisError, match="schema"):

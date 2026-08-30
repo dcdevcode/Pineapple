@@ -50,6 +50,12 @@ _COUNT_TABLES = (
     "safari_bookmarks",
     "whatsapp_chats",
     "whatsapp_messages",
+    "photos",
+    "keychain",
+    "calendar_events",
+    "voicemail",
+    "device_usage",
+    "accounts",
 )
 
 _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (

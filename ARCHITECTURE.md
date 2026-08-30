@@ -316,14 +316,14 @@ Everything a case needs is in one folder the user picks:
 
 ```
 <case>/<title>.json     the descriptor — source of truth for reopening
-<case>/analysis.db      the results (schema v2)
+<case>/analysis.db      the results (schema v3)
 <case>/backup/<udid>/   the archive extracted as-is (encrypted blobs stay encrypted)
 <case>/decrypted/       Manifest.db + the source DBs the parsers needed
 ```
 
 - **`<title>`** defaults to the device serial; `find_descriptor` requires
   exactly one `*.json` in the folder (one analysis per folder).
-- **Schema is v2.** `load_case` rejects a mismatch — re-analyse v1 cases.
+- **Schema is v3.** `load_case` rejects a mismatch — re-analyse older cases.
 - **`CaseHandle`** answers the frontend's paginated read queries. It opens a
   **fresh short-lived `sqlite3` connection per query** (`_connect`), because
   pywebview answers bridge calls on a thread pool and a SQLite connection may
