@@ -13,19 +13,27 @@ describe('SafariSection', () => {
     offset: 0,
   });
   const safariBookmarks = vi.fn().mockResolvedValue(emptyPage);
+  const dialog = { open: vi.fn() };
 
   beforeEach(async () => {
     safariHistory.mockClear();
     safariBookmarks.mockClear();
+    dialog.open.mockClear();
     await TestBed.configureTestingModule({
       imports: [SafariSection],
       providers: [
         provideNoopAnimations(),
-        { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: dialog },
         { provide: AnalysisService, useValue: { safariHistory, safariBookmarks } },
       ],
     }).compileComponents();
   });
+
+  function headers(fixture: { nativeElement: unknown }): (string | undefined)[] {
+    return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('th')).map((th) =>
+      th.textContent?.trim(),
+    );
+  }
 
   it('shows history first and switches to bookmarks', async () => {
     const fixture = TestBed.createComponent(SafariSection);
@@ -37,5 +45,24 @@ describe('SafariSection', () => {
     fixture.componentInstance['view'].set('bookmarks');
     await fixture.whenStable();
     expect(safariBookmarks).toHaveBeenCalled();
+  });
+
+  it('swaps the column set when the view changes', async () => {
+    const fixture = TestBed.createComponent(SafariSection);
+    await fixture.whenStable();
+    expect(headers(fixture)).toEqual(['Visited', 'Title', 'URL', 'Visits']);
+
+    fixture.componentInstance['view'].set('bookmarks');
+    await fixture.whenStable();
+    expect(headers(fixture)).toEqual(['Folder', 'Title', 'URL']);
+  });
+
+  it('opens the row-detail dialog for a history row', async () => {
+    const fixture = TestBed.createComponent(SafariSection);
+    await fixture.whenStable();
+
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('tr[mat-row]')!.click();
+    await fixture.whenStable();
+    expect(dialog.open).toHaveBeenCalled();
   });
 });

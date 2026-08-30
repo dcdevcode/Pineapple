@@ -74,4 +74,55 @@ describe('RecordDetailDialog', () => {
       Array.from(el.querySelectorAll('button')).some((b) => b.textContent?.includes('Extract')),
     ).toBe(false);
   });
+
+  it('renders a text preview and notes when it is truncated', async () => {
+    const fixture = await render({
+      title: 'notes.txt',
+      fields: [],
+      preview: { kind: 'text', name: 'notes.txt', size: 99, text: 'first line', truncated: true },
+    });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.detail__block--preview')?.textContent).toContain('first line');
+    expect(el.textContent).toContain('Preview truncated');
+  });
+
+  it('pretty-prints a plist preview as JSON', async () => {
+    const fixture = await render({
+      title: 'Info.plist',
+      fields: [],
+      preview: { kind: 'plist', name: 'Info.plist', size: 20, json: { a: 1, b: ['x'] } },
+    });
+    const block = (fixture.nativeElement as HTMLElement).querySelector('.detail__block--preview');
+    expect(block?.textContent).toContain('"a": 1');
+    expect(block?.textContent).toContain('"b"');
+  });
+
+  it('explains a binary preview', async () => {
+    const fixture = await render({
+      title: 'blob',
+      fields: [],
+      preview: { kind: 'binary', name: 'blob', size: 4096, truncated: false },
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Binary file (4096 bytes)',
+    );
+  });
+
+  it('shows the symlink target for an unavailable symlink preview', async () => {
+    const fixture = await render({
+      title: 'link',
+      fields: [],
+      preview: { kind: 'unavailable', name: 'link', reason: 'symlink', target: 'SMS/sms.db' },
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('SMS/sms.db');
+  });
+
+  it('explains an unavailable directory preview', async () => {
+    const fixture = await render({
+      title: 'SMS',
+      fields: [],
+      preview: { kind: 'unavailable', name: 'SMS', reason: 'directory' },
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('This is a folder');
+  });
 });

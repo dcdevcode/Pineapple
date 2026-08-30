@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { SyslogService } from './syslog.service';
+import { SyslogService, formatSyslogLine, formatSyslogLines } from './syslog.service';
 import type { SyslogLine } from './syslog.models';
 import type { PineappleApi } from '../device/pywebview';
 
@@ -190,5 +190,26 @@ describe('SyslogService', () => {
     await stalePoll;
 
     expect(service.running()).toBe(true);
+  });
+});
+
+describe('formatSyslogLine / formatSyslogLines', () => {
+  it('renders one line Console-style', () => {
+    expect(formatSyslogLine(line({ message: 'boot' }))).toBe(
+      '2026-08-29T12:00:00 SpringBoard[62] <NOTICE>: boot',
+    );
+  });
+
+  it('includes the subsystem/category label when present', () => {
+    expect(formatSyslogLine(line({ label: 'com.apple.foo/net' }))).toBe(
+      '2026-08-29T12:00:00 SpringBoard[62] <NOTICE> [com.apple.foo/net]: hello',
+    );
+  });
+
+  it('joins many lines with newlines', () => {
+    expect(formatSyslogLines([line({ message: 'a' }), line({ message: 'b' })])).toBe(
+      '2026-08-29T12:00:00 SpringBoard[62] <NOTICE>: a\n' +
+        '2026-08-29T12:00:00 SpringBoard[62] <NOTICE>: b',
+    );
   });
 });

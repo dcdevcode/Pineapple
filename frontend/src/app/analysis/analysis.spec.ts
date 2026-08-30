@@ -39,7 +39,6 @@ describe('Analysis', () => {
     const emptyPage = { rows: [], total: 0, limit: 50, offset: 0 };
     const analysis = {
       summary: summary.asReadonly(),
-      progress: signal({ phase: 'idle' }).asReadonly(),
       chooseCaseFolder,
       openCase,
       closeCase: () => summary.set(null),
