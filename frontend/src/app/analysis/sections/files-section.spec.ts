@@ -1,9 +1,23 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { FilesSection } from './files-section';
 import { AnalysisService } from '../analysis.service';
-import type { Page } from '../analysis.models';
+import type { CaseSummary, Page } from '../analysis.models';
 import type { FileRow } from '../analysis.models';
+
+function summaryOf(over: Partial<CaseSummary> = {}): CaseSummary {
+  return {
+    title: 'X',
+    device: {},
+    source: {},
+    parse: {},
+    counts: {},
+    is_encrypted: false,
+    files_unlocked: true,
+    ...over,
+  };
+}
 
 function filePage(rows: Partial<FileRow>[]): Page<FileRow> {
   return {
@@ -27,19 +41,33 @@ function filePage(rows: Partial<FileRow>[]): Page<FileRow> {
 describe('FilesSection', () => {
   let files: ReturnType<typeof vi.fn>;
   let domains: ReturnType<typeof vi.fn>;
+  let unlock: ReturnType<typeof vi.fn>;
+  const summary = signal<CaseSummary | null>(summaryOf());
 
   beforeEach(async () => {
+    summary.set(summaryOf());
     files = vi.fn().mockResolvedValue(filePage([{}]));
     domains = vi.fn().mockResolvedValue([
       { domain: 'HomeDomain', count: 4 },
       { domain: 'AppDomain-com.x', count: 2 },
     ]);
+    unlock = vi.fn().mockResolvedValue({ ok: true });
 
     await TestBed.configureTestingModule({
       imports: [FilesSection],
       providers: [
         provideNoopAnimations(),
-        { provide: AnalysisService, useValue: { files, domains } },
+        {
+          provide: AnalysisService,
+          useValue: {
+            files,
+            domains,
+            unlock,
+            summary: summary.asReadonly(),
+            previewFile: vi.fn().mockResolvedValue(null),
+            extractFile: vi.fn().mockResolvedValue({ ok: true, path: '/tmp/x' }),
+          },
+        },
       ],
     }).compileComponents();
   });
@@ -67,5 +95,23 @@ describe('FilesSection', () => {
     await fixture.whenStable();
 
     expect(files).toHaveBeenLastCalledWith(expect.objectContaining({ domain: 'AppDomain-com.x' }));
+  });
+
+  it('shows the unlock banner for a locked encrypted case and calls unlock', async () => {
+    summary.set(summaryOf({ is_encrypted: true, files_unlocked: false }));
+    const fixture = await render();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.files__unlock')).toBeTruthy();
+    fixture.componentInstance['password'].set('hunter2');
+    await fixture.componentInstance['unlock']();
+
+    expect(unlock).toHaveBeenCalledWith('hunter2');
+  });
+
+  it('does not expose the Extract action while locked', async () => {
+    summary.set(summaryOf({ is_encrypted: true, files_unlocked: false }));
+    const fixture = await render();
+    expect(fixture.componentInstance['onExtract']()).toBeNull();
   });
 });

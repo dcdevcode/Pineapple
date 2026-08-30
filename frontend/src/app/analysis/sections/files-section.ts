@@ -1,10 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { ArtifactTable, type ColumnDef, type FetchPage } from '../artifact-table';
 import { AnalysisService } from '../analysis.service';
-import type { DomainCount, Page, PageQuery } from '../analysis.models';
+import { field, localTime, type DetailBuilder } from '../detail-fields';
+import type { DomainCount, FilePreview, Page, PageQuery } from '../analysis.models';
 import type { TableRow } from '../artifact-table';
 
 function formatSize(bytes: unknown): string {
@@ -21,27 +24,44 @@ function formatSize(bytes: unknown): string {
   return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`;
 }
 
-/** The Files section: the file index, filterable by domain and path. */
+function fileKind(row: TableRow): string {
+  return row['target'] ? 'symlink' : row['is_dir'] ? 'dir' : 'file';
+}
+
+/** The Files section: the file index, filterable by domain and path. A row opens
+ *  its full metadata plus a content preview and an Extract action; for an
+ *  encrypted backup those need the decryption key (the unlock banner). */
 @Component({
   selector: 'app-files-section',
-  imports: [ArtifactTable, FormsModule, MatFormFieldModule, MatSelectModule],
+  imports: [
+    ArtifactTable,
+    FormsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+  ],
   templateUrl: './files-section.html',
   styleUrl: './files-section.scss',
 })
 export class FilesSection {
   private readonly analysis = inject(AnalysisService);
 
+  protected readonly summary = this.analysis.summary;
   protected readonly domain = signal('');
   protected readonly domains = signal<DomainCount[]>([]);
+  protected readonly password = signal('');
+  protected readonly unlocking = signal(false);
+  protected readonly unlockError = signal<string | null>(null);
+
+  protected readonly locked = computed(
+    () => !!this.summary()?.is_encrypted && !this.summary()?.files_unlocked,
+  );
 
   protected readonly columns: readonly ColumnDef[] = [
     { key: 'domain', label: 'Domain' },
     { key: 'relative_path', label: 'Path' },
-    {
-      key: 'is_dir',
-      label: 'Kind',
-      format: (row) => (row['target'] ? 'symlink' : row['is_dir'] ? 'dir' : 'file'),
-    },
+    { key: 'is_dir', label: 'Kind', format: fileKind },
     { key: 'size', label: 'Size', numeric: true, format: (row) => formatSize(row['size']) },
   ];
 
@@ -53,8 +73,42 @@ export class FilesSection {
     return page as unknown as Page<TableRow>;
   };
 
+  protected readonly detail: DetailBuilder = (row) => [
+    ...field('Path', row['relative_path'], true),
+    ...field('Domain', row['domain']),
+    ...field('Kind', fileKind(row)),
+    ...field('Size', formatSize(row['size']) || '0 B'),
+    ...field('Modified', localTime(row['mtime'])),
+    ...field('Created', localTime(row['btime'])),
+    ...field('Symlink target', row['target']),
+    ...field('File ID', row['file_id']),
+  ];
+
+  protected readonly title = (row: TableRow): string =>
+    String(row['relative_path']).split('/').pop() || String(row['relative_path']);
+
+  protected readonly resolvePreview = (row: TableRow): Promise<FilePreview | null> =>
+    this.analysis.previewFile(String(row['file_id']));
+
+  /** Null while locked so the dialog hides the Extract button. */
+  protected readonly onExtract = computed(() =>
+    this.locked() ? null : (row: TableRow) => this.analysis.extractFile(String(row['file_id'])),
+  );
+
   constructor() {
     void this.loadDomains();
+  }
+
+  protected async unlock(): Promise<void> {
+    this.unlocking.set(true);
+    this.unlockError.set(null);
+    try {
+      const result = await this.analysis.unlock(this.password());
+      if (!result.ok) this.unlockError.set(result.error ?? 'Wrong key.');
+      else this.password.set('');
+    } finally {
+      this.unlocking.set(false);
+    }
   }
 
   private async loadDomains(): Promise<void> {

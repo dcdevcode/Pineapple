@@ -1,4 +1,30 @@
 <div class="files">
+  @if (locked()) {
+    <div class="files__unlock">
+      <p class="files__unlock-text">
+        This backup is encrypted. Enter the backup password to preview or extract files.
+      </p>
+      <form class="files__unlock-form" (ngSubmit)="unlock()">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Backup password</mat-label>
+          <input
+            matInput
+            type="password"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+            name="password"
+          />
+        </mat-form-field>
+        <button matButton="filled" type="submit" [disabled]="unlocking() || !password()">
+          Unlock
+        </button>
+      </form>
+      @if (unlockError()) {
+        <p class="files__unlock-error">{{ unlockError() }}</p>
+      }
+    </div>
+  }
+
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="files__domain">
     <mat-label>Domain</mat-label>
     <mat-select [ngModel]="domain()" (ngModelChange)="domain.set($event)">
@@ -15,5 +41,9 @@
     [fetchPage]="fetch"
     [searchable]="true"
     [scope]="domain()"
+    [detailFields]="detail"
+    [detailTitle]="title"
+    [resolvePreview]="resolvePreview"
+    [onExtract]="onExtract()"
   />
 </div>
