@@ -460,6 +460,24 @@ class CaseHandle:
             offset,
         )
 
+    def device_usage(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """One page of knowledgeC events, most recent first; ``search`` matches
+        the stream or bundle id."""
+        where, params = self._search_where(search, "stream", "bundle_id")
+        return self._page_query(
+            "SELECT rowid, stream, bundle_id, value, start_utc, end_utc, "
+            f"duration_seconds FROM device_usage {where} ORDER BY start_utc DESC",
+            f"SELECT COUNT(*) FROM device_usage {where}",
+            params,
+            limit,
+            offset,
+        )
+
     # -- backup file access -------------------------------------------------
 
     def files_unlocked(self) -> bool:

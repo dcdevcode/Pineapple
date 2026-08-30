@@ -19,6 +19,7 @@ from pineapple.analysis.parsers.accounts import parse_accounts
 from pineapple.analysis.parsers.calendar import parse_calendar
 from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
+from pineapple.analysis.parsers.device_usage import parse_device_usage
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes, walk_protobuf_string
@@ -221,6 +222,31 @@ def test_parse_accounts_joins_account_type(
     assert row["added_utc"].startswith("2023-")
 
 
+def test_parse_device_usage_keeps_only_curated_streams(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_device_usage(
+        _source(
+            backup,
+            "AppDomainGroup-group.com.apple.coreduet",
+            "Library/CoreDuet/Knowledge/knowledgeC.db",
+        ),
+        conn,
+    )
+
+    assert written == 3  # the "/nonsense/stream" row is dropped
+    rows = conn.execute("SELECT * FROM device_usage ORDER BY rowid").fetchall()
+    assert rows[0]["stream"] == "/app/usage"
+    assert rows[0]["bundle_id"] == "com.apple.mobilesafari"
+    assert rows[0]["duration_seconds"] == 90
+    assert rows[0]["start_utc"].startswith("2023-")
+    backlit = conn.execute(
+        "SELECT * FROM device_usage WHERE stream = '/display/isBacklit'"
+    ).fetchone()
+    assert backlit["bundle_id"] is None
+    assert backlit["value"] == "1"
+
+
 def test_parse_calls_maps_direction_and_service(
     conn: sqlite3.Connection, backup: Path
 ) -> None:
@@ -266,6 +292,7 @@ def test_parse_contacts_flattens_multivalues(
         parse_calendar,
         parse_voicemail,
         parse_accounts,
+        parse_device_usage,
         parse_calls,
         parse_contacts,
         parse_safari_history,

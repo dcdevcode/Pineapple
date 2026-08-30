@@ -306,6 +306,23 @@ INSERT INTO ZACCOUNT VALUES
     )
 
 
+def _knowledge_c(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE ZOBJECT (
+    Z_PK INTEGER PRIMARY KEY, ZSTREAMNAME TEXT, ZVALUESTRING TEXT,
+    ZVALUEINTEGER INTEGER, ZSTARTDATE REAL, ZENDDATE REAL
+);
+INSERT INTO ZOBJECT VALUES
+    (1, '/app/usage', 'com.apple.mobilesafari', NULL, 700000000.0, 700000090.0),
+    (2, '/app/inFocus', 'com.example.app', NULL, 700000200.0, 700000260.0),
+    (3, '/display/isBacklit', NULL, 1, 700000300.0, 700000330.0),
+    (4, '/nonsense/stream', 'ignored', NULL, 700000400.0, 700000401.0);
+        """,
+    )
+
+
 def _address_book(path: Path) -> None:
     _script(
         path,
@@ -344,6 +361,11 @@ _SOURCES = (
     _SourceDb("HomeDomain", "Library/Calendar/Calendar.sqlitedb", _calendar),
     _SourceDb("HomeDomain", "Library/Voicemail/voicemail.db", _voicemail),
     _SourceDb("HomeDomain", "Library/Accounts/Accounts3.sqlite", _accounts),
+    _SourceDb(
+        "AppDomainGroup-group.com.apple.coreduet",
+        "Library/CoreDuet/Knowledge/knowledgeC.db",
+        _knowledge_c,
+    ),
     _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
     _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
     _SourceDb(

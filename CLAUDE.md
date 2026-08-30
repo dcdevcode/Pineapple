@@ -185,9 +185,11 @@ buttons, emoji, purple, glassmorphism).
   `ChatStorage.sqlite` → two tables, `photos` = `Photos.sqlite` → `photos` +
   `photo_albums`, each photo row keeping the asset's Manifest file id for preview,
   `calendar` = `Calendar.sqlitedb` → `calendar_events`, `voicemail` =
-  `voicemail.db`, `accounts` = `Accounts3.sqlite`)
+  `voicemail.db`, `accounts` = `Accounts3.sqlite`, `device_usage` =
+  a curated slice of `knowledgeC.db`)
   are tolerant: a missing or damaged source
-  DB is recorded as skipped, not fatal. `calls` and `safari_history` are
+  DB is recorded as skipped, not fatal. `calls`, `safari_history` and
+  `device_usage` are
   `encrypted_only` — iOS keeps those out of *unencrypted* backups, so their
   absence there is expected and the skip note says so. All timestamps ISO-8601
   UTC. Schema is **v3**; `load_case` rejects a mismatch (re-analyze older cases).

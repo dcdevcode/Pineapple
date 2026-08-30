@@ -276,14 +276,15 @@ read-only via `_common.read_source(path, label)` (which maps `sqlite3.Error`
 | `calendar` | `…/Library/Calendar/Calendar.sqlitedb` | `CalendarItem` + `Calendar` + `Location`; `Participant` rows joined into `invitees` (`count_key`) |
 | `voicemail` | `…/Library/Voicemail/voicemail.db` | caller / duration / `trashed_date`; transcription column picked up when present |
 | `accounts` | `…/Library/Accounts/Accounts3.sqlite` | `ZACCOUNT` + `ZACCOUNTTYPE`; metadata only (secrets are in the keychain) |
+| `device_usage` | `AppDomainGroup-group.com.apple.coreduet/…/knowledgeC.db` | **`encrypted_only`**; a curated four-stream slice of CoreDuet, capped at 50k rows |
 | `safari_history` | `…/Safari/History.db` | **`encrypted_only`** |
 | `safari_bookmarks` | `…/Safari/Bookmarks.db` | self-referential table, `type` 1 = bookmark |
 | `whatsapp` | `AppDomainGroup-group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite` | fills `whatsapp_chats` + `whatsapp_messages` (`count_key`) |
 
 **Tolerance.** A missing or damaged source DB is recorded in `skipped`, never
-fatal. **`encrypted_only`.** iOS keeps call history and Safari out of
-*unencrypted* backups, so their absence there is expected and the skip note
-says so.
+fatal. **`encrypted_only`.** iOS keeps call history, Safari history, the
+keychain and `knowledgeC.db` out of *unencrypted* backups, so their absence
+there is expected and the skip note says so.
 
 ### 7.5 Write the descriptor
 

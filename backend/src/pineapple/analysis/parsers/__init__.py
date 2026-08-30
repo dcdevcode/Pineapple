@@ -22,6 +22,7 @@ from pineapple.analysis.parsers.apps import index_apps, index_backup_info
 from pineapple.analysis.parsers.calendar import parse_calendar
 from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
+from pineapple.analysis.parsers.device_usage import parse_device_usage
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes
@@ -109,6 +110,15 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "Library/Safari/History.db",
         "HomeDomain",
         parse_safari_history,
+        encrypted_only=True,
+    ),
+    ParserSpec(
+        # Verify against a real Manifest.db if the file comes back skipped:
+        # the CoreDuet domain / path has moved between iOS releases.
+        "device_usage",
+        "Library/CoreDuet/Knowledge/knowledgeC.db",
+        "AppDomainGroup-group.com.apple.coreduet",
+        parse_device_usage,
         encrypted_only=True,
     ),
     ParserSpec(
