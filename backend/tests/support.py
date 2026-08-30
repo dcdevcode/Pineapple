@@ -7,7 +7,10 @@ The tests never touch a real device: they replace the boundary with
 
 import asyncio
 import contextlib
+from collections.abc import Callable
+from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 
 class FakeLockdown:
@@ -28,6 +31,82 @@ class FakeLockdown:
 
     async def close(self) -> None:
         self.closed = True
+
+
+class FakeMobilebackup2Service:
+    """Stand-in for ``Mobilebackup2Service`` used by :mod:`pineapple.backup`.
+
+    One ``calls`` list is shared across every instance a factory hands out, so a
+    test can assert on both the backup call and the later encryption-restore
+    call made from a fresh service instance.
+    """
+
+    def __init__(
+        self,
+        *,
+        udid: str,
+        calls: list[tuple[object, ...]],
+        will_encrypt: bool = False,
+        backup_error: BaseException | None = None,
+        hang: bool = False,
+        percentages: tuple[float, ...] = (10.0, 60.0, 100.0),
+        files: tuple[str, ...] = ("Info.plist", "Manifest.plist", "Manifest.db"),
+    ) -> None:
+        self._udid = udid
+        self._calls = calls
+        self._will_encrypt = will_encrypt
+        self._backup_error: BaseException | None = backup_error
+        self._hang = hang
+        self._percentages = percentages
+        self._files = files
+
+    async def __aenter__(self) -> FakeMobilebackup2Service:
+        return self
+
+    async def __aexit__(self, *exc: object) -> bool:
+        return False
+
+    async def get_will_encrypt(self) -> bool:
+        return self._will_encrypt
+
+    async def change_password(self, old: str = "", new: str = "") -> None:
+        self._calls.append(("change_password", old, new))
+
+    async def backup(
+        self,
+        *,
+        full: bool,
+        backup_directory: str,
+        password: str,
+        progress_callback: Callable[[float], None],
+    ) -> None:
+        self._calls.append(("backup", full, password))
+        device_directory = Path(backup_directory) / self._udid
+        device_directory.mkdir(parents=True, exist_ok=True)
+        for name in self._files:
+            (device_directory / name).write_bytes(b"payload")
+        for percentage in self._percentages:
+            progress_callback(percentage)
+            await asyncio.sleep(0)
+        if self._backup_error is not None:
+            raise self._backup_error
+        while self._hang:
+            await asyncio.sleep(0.02)
+
+
+class FakeBackupServiceFactory:
+    """A ``Mobilebackup2Service`` replacement; ``calls`` records every call made
+    across every service instance it hands out."""
+
+    def __init__(self, udid: str, **kwargs: Any) -> None:
+        self._udid = udid
+        self._kwargs = kwargs
+        self.calls: list[tuple[object, ...]] = []
+
+    def __call__(self, _lockdown: object) -> FakeMobilebackup2Service:
+        return FakeMobilebackup2Service(
+            udid=self._udid, calls=self.calls, **self._kwargs
+        )
 
 
 def mux_device(serial: str, connection_type: str = "USB") -> SimpleNamespace:

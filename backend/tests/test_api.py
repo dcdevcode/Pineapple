@@ -77,6 +77,94 @@ def test_start_syslog_wraps_a_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
     }
 
 
+def test_backup_preflight_reports_encryption(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def one_device() -> str | None:
+        return "udid-1"
+
+    async def will_encrypt(udid: str) -> bool:
+        return True
+
+    monkeypatch.setattr("pineapple.devices.single_device_udid", one_device)
+    monkeypatch.setattr("pineapple.backup.will_encrypt_backups", will_encrypt)
+    assert Api().backup_preflight() == {"ok": True, "willEncrypt": True}
+
+
+def test_backup_preflight_without_a_single_device(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def no_device() -> str | None:
+        return None
+
+    monkeypatch.setattr("pineapple.devices.single_device_udid", no_device)
+    assert Api().backup_preflight() == {
+        "ok": False,
+        "error": "no single device connected",
+    }
+
+
+def test_backup_preflight_wraps_a_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def one_device() -> str | None:
+        return "udid-1"
+
+    async def boom(udid: str) -> bool:
+        raise RuntimeError("unpaired")
+
+    monkeypatch.setattr("pineapple.devices.single_device_udid", one_device)
+    monkeypatch.setattr("pineapple.backup.will_encrypt_backups", boom)
+    assert Api().backup_preflight() == {"ok": False, "error": "unpaired"}
+
+
+def test_choose_backup_path_returns_the_pick(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "My iPhone 2026-01-01 120000.pineapple"
+    window = FakeWindow(str(target))
+    monkeypatch.setattr("pineapple.api.webview.windows", [window])
+
+    assert Api().choose_backup_path("Diego / iPhone") == {
+        "ok": True,
+        "path": str(target),
+    }
+    (_dialog, save_filename) = window.calls[0]
+    assert save_filename.endswith(".pineapple")
+    assert "/" not in save_filename
+
+
+def test_choose_backup_path_returns_not_ok_when_cancelled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("pineapple.api.webview.windows", [FakeWindow(None)])
+    assert Api().choose_backup_path("iPhone") == {"ok": False}
+
+
+def test_start_backup_wraps_a_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
+    api = Api()
+
+    def boom(path: str, encrypt: bool, password: str) -> None:
+        raise RuntimeError("no single device connected")
+
+    monkeypatch.setattr(api._backup, "start", boom)
+    assert api.start_backup("/tmp/image", False, "") == {
+        "ok": False,
+        "error": "no single device connected",
+    }
+
+
+def test_read_backup_progress_passes_through(monkeypatch: pytest.MonkeyPatch) -> None:
+    api = Api()
+    snapshot = {"phase": "backing_up", "percent": 42.0, "running": True}
+    monkeypatch.setattr(api._backup, "progress", lambda: snapshot)
+    assert api.read_backup_progress() == snapshot
+
+
+def test_cancel_backup_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
+    api = Api()
+    calls: list[bool] = []
+    monkeypatch.setattr(api._backup, "cancel", lambda: calls.append(True))
+    assert api.cancel_backup() == {"ok": True}
+    assert calls == [True]
+
+
 def test_save_syslog_returns_not_ok_when_cancelled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
