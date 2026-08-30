@@ -95,8 +95,10 @@ These are the reusable shapes already in the app. Match them.
 
 `brand/` — the full product logo (`public/logo.png`: the pineapple mark plus the
 "Pineapple" wordmark, a single image) rendered as one `<img>` sized by height.
-`size` is `compact` (34 px — the default, in the left column of the app header)
-or `large` (52 px — the About tab). Reuse it anywhere the app names itself;
+`size` is `compact` (48 px — the default, in the left column of the app header)
+or `large` (72 px — the About tab). The logo.png canvas carries ~10 % dead
+space top and bottom, so it reads a touch smaller than its box. Reuse it
+anywhere the app names itself;
 never re-typeset the wordmark. The logo is the product mark, so it keeps its own
 colour — it is not subject to the monochrome line-art rule below.
 
