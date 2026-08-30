@@ -190,6 +190,25 @@ INSERT INTO bookmarks VALUES (3, 1, 0, 'Empty folder', NULL);
     )
 
 
+def _whatsapp(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE ZWACHATSESSION (
+    Z_PK INTEGER PRIMARY KEY, ZCONTACTJID TEXT, ZPARTNERNAME TEXT,
+    ZLASTMESSAGEDATE REAL, ZMESSAGECOUNTER INTEGER
+);
+CREATE TABLE ZWAMESSAGE (
+    Z_PK INTEGER PRIMARY KEY, ZCHATSESSION INTEGER, ZISFROMME INTEGER,
+    ZFROMJID TEXT, ZMESSAGEDATE REAL, ZTEXT TEXT, ZMESSAGETYPE INTEGER
+);
+INSERT INTO ZWACHATSESSION VALUES (1, '1555000@s.whatsapp.net', 'Alice', 7e8, 2);
+INSERT INTO ZWAMESSAGE VALUES (1, 1, 0, '1555000@s.whatsapp.net', 700000100.0, 'hi', 0);
+INSERT INTO ZWAMESSAGE VALUES (2, 1, 1, NULL, 700000200.0, NULL, 1);
+        """,
+    )
+
+
 def _call_history(path: Path) -> None:
     _script(
         path,
@@ -241,6 +260,11 @@ _SOURCES = (
     _SourceDb("AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite", _note_store),
     _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
     _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
+    _SourceDb(
+        "AppDomainGroup-group.net.whatsapp.WhatsApp.shared",
+        "ChatStorage.sqlite",
+        _whatsapp,
+    ),
 )
 
 UDID = "00008110-000A1B2C3D4E001E"

@@ -24,6 +24,7 @@ from pineapple.analysis.parsers.safari import (
     parse_safari_bookmarks,
     parse_safari_history,
 )
+from pineapple.analysis.parsers.whatsapp import parse_whatsapp
 from pineapple.analysis.schema import initialize
 
 
@@ -109,6 +110,31 @@ def test_parse_safari_bookmarks_keeps_leaves_with_folder(
     assert row["title"] == "Apple"
     assert row["url"] == "https://apple.com/"
     assert row["folder"] == "Favorites"
+
+
+def test_parse_whatsapp_fills_chats_and_messages(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_whatsapp(
+        _source(
+            backup,
+            "AppDomainGroup-group.net.whatsapp.WhatsApp.shared",
+            "ChatStorage.sqlite",
+        ),
+        conn,
+    )
+
+    assert written == 2
+    chat = conn.execute("SELECT * FROM whatsapp_chats").fetchone()
+    assert chat["name"] == "Alice"
+    assert chat["message_count"] == 2
+    rows = conn.execute("SELECT * FROM whatsapp_messages ORDER BY rowid").fetchall()
+    assert rows[0]["text"] == "hi"
+    assert rows[0]["from_me"] == 0
+    assert rows[0]["media_type"] == "text"
+    assert rows[1]["from_me"] == 1
+    assert rows[1]["media_type"] == "image"
+    assert rows[1]["chat_name"] == "Alice"
 
 
 def test_parse_calls_maps_direction_and_service(

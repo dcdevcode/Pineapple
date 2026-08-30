@@ -27,6 +27,7 @@ from pineapple.analysis.parsers.safari import (
     parse_safari_bookmarks,
     parse_safari_history,
 )
+from pineapple.analysis.parsers.whatsapp import parse_whatsapp
 
 ParseFn = Callable[[Path, sqlite3.Connection], int]
 
@@ -78,6 +79,12 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "Library/Safari/Bookmarks.db",
         "HomeDomain",
         parse_safari_bookmarks,
+    ),
+    ParserSpec(
+        "whatsapp",
+        "ChatStorage.sqlite",
+        "AppDomainGroup-group.net.whatsapp.WhatsApp.shared",
+        parse_whatsapp,
     ),
 ]
 
