@@ -34,13 +34,10 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  border: 1px solid var(--app-border);
-  border-radius: 4px;
 }
 
 table {
   width: 100%;
-  background: var(--app-surface);
 }
 
 th.table__num,

@@ -50,6 +50,21 @@ html {
     )
   );
 
+  // Artifact tables read as part of the section, not a raised panel: the page
+  // shows through, and the row + header rules (hairlines, like everywhere else)
+  // are the only structure.
+  @include mat.table-overrides(
+    (
+      background-color: transparent,
+      row-item-outline-color: var(--app-border),
+    )
+  );
+  @include mat.paginator-overrides(
+    (
+      container-background-color: transparent,
+    )
+  );
+
   // Surface tokens (pure white base; raised surfaces a hair of grey plus the
   // hairline border and Material elevation).
   --app-bg: #ffffff;

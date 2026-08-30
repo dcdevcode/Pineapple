@@ -76,7 +76,7 @@
   flex: none;
   width: 200px;
   box-sizing: border-box;
-  padding: 12px 8px;
+  padding: 8px 0;
   border-right: 1px solid var(--app-border);
   overflow-y: auto;
 }
@@ -84,19 +84,17 @@
 .analysis__nav mat-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2px;
   padding: 0;
 }
 
+// Flat full-width rows: drop the <button> UA border, and keep Material's
+// secondary-container active highlight but squared off (the shape var is the
+// only knob for that).
 .analysis__nav [mat-list-item] {
-  --mat-list-list-item-container-shape: 999px;
   --mat-list-list-item-one-line-container-height: 44px;
-  border-radius: 999px;
-  border: 1px solid var(--app-border);
-}
-
-.analysis__nav [mat-list-item][activated] {
-  border-color: transparent;
+  --mat-list-active-indicator-shape: 0;
+  border: 0;
 }
 
 .analysis__nav-label {

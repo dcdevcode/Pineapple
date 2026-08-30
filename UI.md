@@ -44,7 +44,7 @@ Defined on `html` in `styles.scss`; use these, not raw hex:
 | Token | Value | Use |
 | --- | --- | --- |
 | `--app-bg` | `#ffffff` | window background, inset blocks |
-| `--app-surface` | `#f4f4f3` | raised surfaces, table bodies, the tab container |
+| `--app-surface` | `#f4f4f3` | the app-header strip, dialog surfaces, callout panels (e.g. the Files unlock banner) |
 | `--app-border` | `rgba(0,0,0,0.12)` | hairline dividers and outlines |
 | `--app-text` | `rgba(0,0,0,0.87)` | primary text |
 | `--app-text-muted` | `rgba(0,0,0,0.6)` | secondary text, metadata, counts |
@@ -129,14 +129,20 @@ visible text label.
 
 A fixed-width (`200px`) left rail of `mat-nav-list` **buttons** (not anchors —
 they switch state, not navigate), each showing a section label and, when
-known, a right-aligned muted count. `[activated]` marks the current section.
+known, a right-aligned muted count. Flat full-width rows — **no pill, no
+border** (the `<button>` UA border is reset); the `[activated]` row keeps
+Material's `secondary-container` highlight but squared off
+(`--mat-list-active-indicator-shape: 0`). The rail keeps a `--app-border`
+`border-right` to separate it from the content.
 
 ### `ArtifactTable`
 
 The generic table for every artifact list (`analysis/artifact-table.ts`).
 
-- `mat-table` + `mat-paginator` inside an `overflow: auto` scroll box with a
-  `--app-border` outline; the table body is `--app-surface`.
+- `mat-table` + `mat-paginator` in an `overflow: auto` scroll area with **no
+  box** — it sits on the section background, not a raised panel. Structure comes
+  only from the row / header rules (`--app-border`, via `mat.table-overrides`);
+  the table and paginator backgrounds are transparent.
 - Owns its fetch loop: give it `columns`, a `fetchPage` function, and
   optionally `scope` (bump to refetch), `searchable`, `detailFields` /
   `detailTitle`, and (Files only) `resolvePreview` / `onExtract`.
