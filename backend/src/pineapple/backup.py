@@ -104,6 +104,9 @@ class DeviceBackup:
         self._state = _Progress()
         self._task: asyncio.Task[Any] | None = None
         self._cancelled = threading.Event()
+        # True once this run turned on the device's backup encryption; drives
+        # the restore in _restore_encryption / _unwind.
+        self._we_enabled_encryption = False
 
     @property
     def running(self) -> bool:
@@ -153,6 +156,10 @@ class DeviceBackup:
             for name, value in fields.items():
                 setattr(self._state, name, value)
 
+    def _note(self) -> str | None:
+        with self._state_lock:
+            return self._state.note
+
     def _on_percent(self, value: Any) -> None:
         if not isinstance(value, (int, float)):
             return
@@ -163,7 +170,7 @@ class DeviceBackup:
     ) -> None:
         lockdown = None
         staging: Path | None = None
-        we_enabled_encryption = False
+        self._we_enabled_encryption = False
         try:
             try:
                 lockdown = await create_using_usbmux(udid, autopair=False)
@@ -173,30 +180,17 @@ class DeviceBackup:
 
             staging = Path(mkdtemp(prefix=".pineapple-", dir=output_path.parent))
 
-            # Each device operation gets its own Mobilebackup2Service context:
-            # the com.apple.mobilebackup2 session is single-use (one DeviceLink
-            # operation, then DLMessageDisconnect), so reusing one instance for
-            # "enable encryption" then "back up" runs the backup on a dead
-            # session. _restore_encryption already follows this rule.
             if encrypt:
-                async with Mobilebackup2Service(lockdown) as prep:
-                    if not await prep.get_will_encrypt():
-                        self._set(
-                            phase="preparing",
-                            note="Enabling backup encryption on the device. Unlock "
-                            "it and enter the passcode if prompted.",
-                        )
-                        # Set before the call: a cancel mid-change must still
-                        # trigger the restore attempt, even if the enable
-                        # half-applied.
-                        we_enabled_encryption = True
-                        await prep.change_password(new=password)
+                await self._enable_encryption_if_needed(lockdown, password)
 
             self._set(
                 phase="backing_up",
                 percent=0.0,
                 note="Backing up the device. Keep it unlocked and connected.",
             )
+            # A fresh Mobilebackup2Service: the com.apple.mobilebackup2 session
+            # is single-use (one DeviceLink operation, then DLMessageDisconnect),
+            # so the backup cannot share the "enable encryption" instance.
             async with Mobilebackup2Service(lockdown) as service:
                 await service.backup(
                     full=True,
@@ -205,18 +199,15 @@ class DeviceBackup:
                     progress_callback=self._on_percent,
                 )
 
-            self._set(
-                phase="packaging",
-                note="Packaging the .pineapple archive.",
-            )
+            self._set(phase="packaging", note="Packaging the .pineapple archive.")
             await asyncio.to_thread(
                 _zip_stored, staging / udid, output_path, self._cancelled
             )
 
             note = None
-            if we_enabled_encryption:
+            if self._we_enabled_encryption:
                 await self._restore_encryption(lockdown, password)
-                note = self._state.note
+                note = self._note()
             self._set(
                 phase="done",
                 percent=100.0,
@@ -225,29 +216,15 @@ class DeviceBackup:
                 note=note,
                 running=False,
             )
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, _PackagingCancelled) as exc:
             await asyncio.shield(
-                self._unwind(
-                    lockdown, we_enabled_encryption, password, output_path, "cancelled"
-                )
+                self._unwind(lockdown, password, output_path, "cancelled")
             )
-            raise
-        except _PackagingCancelled:
-            await asyncio.shield(
-                self._unwind(
-                    lockdown, we_enabled_encryption, password, output_path, "cancelled"
-                )
-            )
+            if isinstance(exc, asyncio.CancelledError):
+                raise
         except Exception as error:
             await asyncio.shield(
-                self._unwind(
-                    lockdown,
-                    we_enabled_encryption,
-                    password,
-                    output_path,
-                    "error",
-                    str(error),
-                )
+                self._unwind(lockdown, password, output_path, "error", str(error))
             )
         finally:
             if staging is not None:
@@ -255,10 +232,27 @@ class DeviceBackup:
             if lockdown is not None:
                 await lockdown.close()
 
+    async def _enable_encryption_if_needed(self, lockdown: Any, password: str) -> None:
+        """Turn on backup encryption when the device does not already encrypt.
+
+        Its own Mobilebackup2Service (single-use session, see :meth:`_run`).
+        ``_we_enabled_encryption`` is set *before* the call so a cancel
+        mid-change still triggers the restore, even if the enable half-applied.
+        """
+        async with Mobilebackup2Service(lockdown) as prep:
+            if await prep.get_will_encrypt():
+                return
+            self._set(
+                phase="preparing",
+                note="Enabling backup encryption on the device. Unlock it and "
+                "enter the passcode if prompted.",
+            )
+            self._we_enabled_encryption = True
+            await prep.change_password(new=password)
+
     async def _unwind(
         self,
         lockdown: Any,
-        we_enabled_encryption: bool,
         password: str,
         output_path: Path,
         phase: str,
@@ -267,7 +261,7 @@ class DeviceBackup:
         """Roll a failed / cancelled run back: drop the half-written archive and
         restore the device's original encryption setting."""
         output_path.unlink(missing_ok=True)
-        if we_enabled_encryption:
+        if self._we_enabled_encryption:
             await self._restore_encryption(lockdown, password)
         self._set(phase=phase, error=error, running=False)
 

@@ -37,7 +37,7 @@ from pineapple.analysis.parsers import (
     index_backup_info,
     index_files,
 )
-from pineapple.analysis.reader import open_reader
+from pineapple.analysis.reader import BackupReader, open_reader
 from pineapple.analysis.schema import initialize
 from pineapple.session import DeviceSession
 
@@ -168,43 +168,13 @@ class AnalysisRun:
         reader = None
         conn: sqlite3.Connection | None = None
         try:
-            self._check()
-            self._set(phase="extracting", note="Unpacking the archive.")
-            backup_root = archive.extract(
-                params.pineapple_path, params.case_dir / "backup", self._cancelled
-            )
-            self._set(percent=_EXTRACT_END)
-
-            self._check()
-            self._set(
-                phase="opening",
-                note=(
-                    "Deriving the decryption key."
-                    if params.metadata.is_encrypted
-                    else "Opening the backup."
-                ),
-            )
-            reader = open_reader(
-                backup_root,
-                params.metadata,
-                params.password,
-                params.case_dir / "decrypted",
-            )
-            self._set(percent=_OPEN_END)
+            backup_root = self._extract(params)
+            reader = self._open(params, backup_root)
 
             conn = sqlite3.connect(str(params.case_dir / ANALYSIS_DB))
             initialize(conn)
 
-            self._check()
-            self._set(phase="indexing", note="Indexing device info and files.")
-            index_backup_info(params.metadata, conn)
-            apps = index_apps(params.metadata, conn)
-            files = index_files(reader.manifest_connection(), conn)
-            conn.commit()
-            counts: dict[str, int] = {"apps": apps, "files": files}
-            skipped: list[str] = []
-            self._set(percent=_INDEX_END, counts=dict(counts))
-
+            counts, skipped = self._index(params, reader, conn)
             self._run_parsers(params, reader, conn, counts, skipped)
 
             self._check()
@@ -241,10 +211,51 @@ class AnalysisRun:
             if conn is not None:
                 conn.close()
 
+    def _extract(self, params: _Params) -> Path:
+        self._check()
+        self._set(phase="extracting", note="Unpacking the archive.")
+        root = archive.extract(
+            params.pineapple_path, params.case_dir / "backup", self._cancelled
+        )
+        self._set(percent=_EXTRACT_END)
+        return root
+
+    def _open(self, params: _Params, backup_root: Path) -> BackupReader:
+        self._check()
+        self._set(
+            phase="opening",
+            note=(
+                "Deriving the decryption key."
+                if params.metadata.is_encrypted
+                else "Opening the backup."
+            ),
+        )
+        reader = open_reader(
+            backup_root,
+            params.metadata,
+            params.password,
+            params.case_dir / "decrypted",
+        )
+        self._set(percent=_OPEN_END)
+        return reader
+
+    def _index(
+        self, params: _Params, reader: BackupReader, conn: sqlite3.Connection
+    ) -> tuple[dict[str, int], list[str]]:
+        self._check()
+        self._set(phase="indexing", note="Indexing device info and files.")
+        index_backup_info(params.metadata, conn)
+        apps = index_apps(params.metadata, conn)
+        files = index_files(reader.manifest_connection(), conn)
+        conn.commit()
+        counts = {"apps": apps, "files": files}
+        self._set(percent=_INDEX_END, counts=dict(counts))
+        return counts, []
+
     def _run_parsers(
         self,
         params: _Params,
-        reader: Any,
+        reader: BackupReader,
         conn: sqlite3.Connection,
         counts: dict[str, int],
         skipped: list[str],
