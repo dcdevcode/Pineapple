@@ -1,4 +1,4 @@
-"""The one exception type the analysis package raises for expected failures."""
+"""The exception types the analysis package raises for expected failures."""
 
 
 class AnalysisError(Exception):

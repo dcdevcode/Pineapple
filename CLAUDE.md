@@ -29,16 +29,23 @@ inspects Apple devices connected over USB.
 - **Frontend** (`frontend/`): Angular + Angular Material, **`pnpm` only**
   (never `npm`/`yarn`). Rendered inside the pywebview window.
 
+For the full picture of how it works — the process model, the device read
+flow, backup creation, the analysis pipeline, the case-folder format, and how
+each library is used — see `ARCHITECTURE.md`. For the UI rules and component
+patterns, see `UI.md`; the "UI / design system" section below is the summary.
+
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
+| `ARCHITECTURE.md` | The deep "why of everything": execution model, data formats, per-library usage. |
+| `UI.md` | The UI design system in full. |
 | `backend/pyproject.toml` | uv project: deps, `pineapple` and `pineapple-gui` entry points. |
 | `backend/src/pineapple/devices.py` | Async USB device access (`connected_devices`, `single_device_udid`, `get_device_info`, `INFO_FIELDS`). |
 | `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
 | `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
 | `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
-| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`), `schema` (v2) + `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / safari / whatsapp / file index → `analysis.db`), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
+| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `mbfile` (decode a `Manifest.db` `Files.file` blob), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`), `schema` (v2), `errors`, `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / safari / whatsapp / file index → `analysis.db`; `_common.read_source` wraps the DB open), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup` / `analysis`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
@@ -50,7 +57,8 @@ inspects Apple devices connected over USB.
 | `frontend/src/app/about/` | About tab: the `Pineapple` wordmark, the author line, and a `Thanks` list crediting the core libraries (`pymobiledevice3`, `iphone_backup_decrypt`, `python-typedstream`, `pywebview`). Static — no bridge. |
 | `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control beside Search. Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
 | `frontend/src/styles.scss` | Global Angular Material theme — a single fixed **dark** scheme (no theme switch), yellow accent, a nod to the pineapple. |
-| `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / test / build) on every push and PR. |
+| `frontend/eslint.config.js` | `angular-eslint` + `typescript-eslint` flat config (`pnpm lint`). |
+| `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / lint / test / build) on every push and PR. |
 
 ## Common commands
 
@@ -70,6 +78,7 @@ cd frontend
 pnpm install
 pnpm run build                              # -> dist/pineapple-frontend/browser/
 pnpm start                                  # ng serve on http://localhost:4200
+pnpm lint                                   # eslint (angular-eslint)
 pnpm test                                   # vitest
 pnpm exec prettier --check "src/**/*.{ts,html,scss}"
 ```
@@ -77,6 +86,8 @@ pnpm exec prettier --check "src/**/*.{ts,html,scss}"
 Typical dev loop: `pnpm start` in `frontend/`, then `uv run pineapple-gui --dev` in `backend/`.
 
 ## UI / design system
+
+The full version, with tokens and the component patterns, is in `UI.md`. In short:
 
 Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 "generic AI" aesthetic. Every screen must look deliberately designed for *this*

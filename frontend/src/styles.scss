@@ -20,8 +20,8 @@ html {
     )
   );
 
-  // Render the tab bar as a segmented control: no ink bar, no header divider,
-  // the active label reads on the selected pill (styled below).
+  // Render the three-tab bar as a segmented control: no ink bar, no header
+  // divider, the active label reads on the selected pill (styled below).
   @include mat.tabs-overrides(
     (
       divider-height: 0,
@@ -58,7 +58,7 @@ app-root .mat-mdc-tab-body-wrapper {
   flex: 1;
 }
 
-// Tab bar as an MD3 segmented control: the two tabs sit in one centered, rounded
+// Tab bar as an MD3 segmented control: the tabs sit in one centered, rounded
 // container and the active tab is a filled "pill". These rules target MDC's DOM
 // classes because the pill shape has no theme token to override.
 app-root {

@@ -1,11 +1,20 @@
 # pineapple (backend)
 
-Python backend for the Pineapple iOS forensic analysis tool.
+Python backend for the Pineapple iOS forensic analysis tool. See
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) for how the pieces fit together.
 
-- `pineapple.devices` - async USB device access (`connected_devices`, `get_device_info`).
-- `pineapple.api` - `Api`, the sync bridge exposed to the frontend as `window.pywebview.api`.
-- `pineapple.app` - pywebview host window for the desktop UI.
-- `pineapple.cli` - the `pineapple` console script.
+## Modules
+
+| Module | Purpose |
+| --- | --- |
+| `pineapple.devices` | Async USB device access (`connected_devices`, `single_device_udid`, `get_device_info`). |
+| `pineapple.session` | `DeviceSession`: one background asyncio loop for long-lived device work. |
+| `pineapple.syslog` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer. |
+| `pineapple.backup` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one `.pineapple` zip. |
+| `pineapple.analysis` | Offline `.pineapple` parsing: archive / metadata / reader, the artifact parsers, the run pipeline, and the `<title>.json` case folder. |
+| `pineapple.api` | `Api`: the sync bridge over the above, bound to `window.pywebview.api`. |
+| `pineapple.app` | pywebview host window (`pineapple-gui`). |
+| `pineapple.cli` | `pineapple` console script: print the connected devices. |
 
 ## Setup
 
@@ -16,14 +25,9 @@ uv sync
 ## Run
 
 ```bash
-# Print the connected devices and their info
-uv run pineapple
-
-# Desktop window (serves the production frontend build)
-uv run pineapple-gui
-
-# Desktop window against the Angular dev server (run `pnpm start` in ../frontend first)
-uv run pineapple-gui --dev
+uv run pineapple            # print the connected devices and their info
+uv run pineapple-gui        # desktop window (serves the production frontend build)
+uv run pineapple-gui --dev  # desktop window against the Angular dev server (pnpm start in ../frontend)
 ```
 
 ## Checks
@@ -34,7 +38,8 @@ uv run mypy          # strict
 uv run pytest
 ```
 
-Tests live in `tests/` and never touch a device — the `pymobiledevice3` and
-`webview` boundary is faked (`tests/support.py`). Every new function with
-non-trivial behaviour gets a test in the same change.
-
+Tests live in `tests/` and never touch a device: the `pymobiledevice3`,
+`webview` and `iphone_backup_decrypt` boundaries are faked (`tests/support.py`
+and `tests/analysis_support.py`, which also builds a tiny real on-disk backup
++ `.pineapple`). Every function with non-trivial behaviour ships its test in
+the same change.
