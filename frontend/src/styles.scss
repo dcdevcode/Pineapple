@@ -1,17 +1,17 @@
-// Angular Material theme (Material Design 3). Dark color scheme only — no theme
-// switch. Yellow is an accent only (see CLAUDE.md design system): focus rings,
-// the selected tab pill, later the primary button — never large fills or
-// gradients.
+// Angular Material theme (Material Design 3). Light color scheme only — no theme
+// switch. A goldenrod amber is an accent only (see CLAUDE.md design system):
+// focus rings, the selected tab pill, the primary button — never large amber
+// fills or gradients.
 @use '@angular/material' as mat;
 
 html {
   height: 100%;
-  color-scheme: dark;
+  color-scheme: light;
 
   @include mat.theme(
     (
       color: (
-        theme-type: dark,
+        theme-type: light,
         primary: mat.$yellow-palette,
         tertiary: mat.$yellow-palette,
       ),
@@ -19,6 +19,18 @@ html {
       density: 0,
     )
   );
+
+  // The yellow palette's light-scheme primary is a low-contrast olive; pin the
+  // accent to a goldenrod amber (a common yellow, not garish) that carries white
+  // text on filled surfaces while keeping the nod to the pineapple.
+  --mat-sys-primary: #b8860b;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #ffe1a8;
+  --mat-sys-on-primary-container: #271900;
+  --mat-sys-tertiary: #b8860b;
+  --mat-sys-on-tertiary: #ffffff;
+  --mat-sys-tertiary-container: #ffe1a8;
+  --mat-sys-on-tertiary-container: #271900;
 
   // Render the three-tab bar as a segmented control: no ink bar, no header
   // divider, the active label reads on the selected pill (styled below).
@@ -32,12 +44,13 @@ html {
     )
   );
 
-  // Surface tokens (dark is not pure black; depth comes from Material elevation).
-  --app-bg: #121212;
-  --app-surface: #1e1e1e;
-  --app-border: rgba(255, 255, 255, 0.12);
-  --app-text: rgba(255, 255, 255, 0.87);
-  --app-text-muted: rgba(255, 255, 255, 0.6);
+  // Surface tokens (pure white base; raised surfaces a hair of grey plus the
+  // hairline border and Material elevation).
+  --app-bg: #ffffff;
+  --app-surface: #f4f4f3;
+  --app-border: rgba(0, 0, 0, 0.12);
+  --app-text: rgba(0, 0, 0, 0.87);
+  --app-text-muted: rgba(0, 0, 0, 0.6);
 }
 
 body {

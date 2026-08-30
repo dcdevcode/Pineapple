@@ -22,15 +22,15 @@ devices over USB and analyses their backups offline.
 | Folder | Stack |
 | --- | --- |
 | `backend/` | Python `>=3.14` (`uv`). `pymobiledevice3` for device access, `pywebview` for the window, `iphone_backup_decrypt` for encrypted backups, `pytypedstream` for iMessage bodies. |
-| `frontend/` | Angular + Angular Material, dark theme, zoneless. Package manager: **`pnpm`** (never `npm`/`yarn`). Rendered inside the pywebview window. |
+| `frontend/` | Angular + Angular Material, light theme, zoneless. Package manager: **`pnpm`** (never `npm`/`yarn`). Rendered inside the pywebview window. |
 
 ## Docs
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — how everything works and why: the
   process model, the device read flow, backup creation, the analysis
   pipeline, the case-folder format, and how each third-party library is used.
-- [`UI.md`](UI.md) — the UI design system (Material Design 3, dark-only,
-  yellow accent, the component patterns).
+- [`UI.md`](UI.md) — the UI design system (Material Design 3, light-only,
+  goldenrod-amber accent, the component patterns).
 - [`CLAUDE.md`](CLAUDE.md) — repository conventions.
 
 ## Requirements

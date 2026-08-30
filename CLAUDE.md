@@ -56,7 +56,7 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
 | `frontend/src/app/about/` | About tab: the `Pineapple` wordmark, the author line, and a `Thanks` list crediting the core libraries (`pymobiledevice3`, `iphone_backup_decrypt`, `python-typedstream`, `pywebview`). Static — no bridge. |
 | `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control beside Search. Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
-| `frontend/src/styles.scss` | Global Angular Material theme — a single fixed **dark** scheme (no theme switch), yellow accent, a nod to the pineapple. |
+| `frontend/src/styles.scss` | Global Angular Material theme — a single fixed **light** scheme (no theme switch), a goldenrod-amber accent, a nod to the pineapple. |
 | `frontend/eslint.config.js` | `angular-eslint` + `typescript-eslint` flat config (`pnpm lint`). |
 | `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / lint / test / build) on every push and PR. |
 
@@ -94,11 +94,13 @@ Target: **Material Design 3**, restrained and functional. Explicitly **not** the
 tool — never the default "AI assistant" look (centered hero text, gradient
 buttons, emoji, purple, glassmorphism).
 
-- **Dark theme**, a muted yellow as an **accent only** (`mat.$yellow-palette` as
-  `primary`, a nod to the pineapple): active tab indicator, focus rings, later the
-  primary button. Never large yellow fills or yellow gradients.
-- Surfaces from `styles.scss` tokens: `--app-bg: #121212`, `--app-surface: #1e1e1e`.
-  Not pure black. Depth comes from Material elevation, not custom shadows or glow.
+- **Light theme**, a goldenrod amber as an **accent only** (`mat.$yellow-palette`
+  as `primary`, overridden to `--mat-sys-primary: #b8860b`, a nod to the
+  pineapple): active tab indicator, focus rings, the primary button. Never large
+  amber fills or amber gradients.
+- Surfaces from `styles.scss` tokens: `--app-bg: #ffffff`, `--app-surface: #f4f4f3`.
+  Pure white; raised surfaces a hair of grey. Depth comes from Material elevation,
+  not custom shadows or glow.
 - Typeface: **Roboto**, self-hosted via `@fontsource/roboto` (weights 400/500).
   No Google Fonts / CDN links — the app must work offline.
 - Material 8dp spacing grid and the standard Material type scale

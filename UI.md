@@ -20,17 +20,21 @@ Depth comes from **Material elevation**, never from custom shadows or glow.
 
 ## Colour
 
-A single fixed **dark** colour scheme. **No theme switch** — no light mode, no
+A single fixed **light** colour scheme. **No theme switch** — no dark mode, no
 system mode, no settings UI for it. This is a deliberate product choice, not a
 missing feature.
 
 The theme is configured once in `styles.scss` via `mat.theme(...)`:
 
-- `theme-type: dark`
-- `primary` and `tertiary`: `mat.$yellow-palette` — a muted yellow, a nod to
-  the pineapple, used as an **accent only**: the selected tab pill, focus
-  rings, the primary/filled button. **Never** large yellow fills, yellow
-  backgrounds, or yellow gradients.
+- `theme-type: light`
+- `primary` and `tertiary`: `mat.$yellow-palette`, but the low-contrast
+  light-scheme olive is overridden to a **goldenrod amber** (`--mat-sys-primary:
+  #b8860b`, `--mat-sys-primary-container: #ffe1a8`) — a nod to the pineapple,
+  used as an **accent only**: the selected tab pill, focus rings, the
+  primary/filled button. **Never** large amber fills, amber backgrounds, or
+  amber gradients. The accent is only ~3:1 on white, so anything using it as
+  *text* (e.g. the About links) also carries a non-colour cue such as an
+  underline.
 - `density: 0`
 
 ### Surface tokens
@@ -39,13 +43,14 @@ Defined on `html` in `styles.scss`; use these, not raw hex:
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--app-bg` | `#121212` | window background, inset blocks |
-| `--app-surface` | `#1e1e1e` | raised surfaces, table bodies, the tab container |
-| `--app-border` | `rgba(255,255,255,0.12)` | hairline dividers and outlines |
-| `--app-text` | `rgba(255,255,255,0.87)` | primary text |
-| `--app-text-muted` | `rgba(255,255,255,0.6)` | secondary text, metadata, counts |
+| `--app-bg` | `#ffffff` | window background, inset blocks |
+| `--app-surface` | `#f4f4f3` | raised surfaces, table bodies, the tab container |
+| `--app-border` | `rgba(0,0,0,0.12)` | hairline dividers and outlines |
+| `--app-text` | `rgba(0,0,0,0.87)` | primary text |
+| `--app-text-muted` | `rgba(0,0,0,0.6)` | secondary text, metadata, counts |
 
-The background is **not pure black**. For anything the tokens don't cover, use
+The background is **pure white**; raised surfaces are a hair of grey plus the
+hairline border and Material elevation. For anything the tokens don't cover, use
 the Material system tokens (`--mat-sys-*`) — e.g. `--mat-sys-error`,
 `--mat-sys-surface-container-high`, `--mat-sys-on-surface-variant`.
 
