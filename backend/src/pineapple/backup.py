@@ -173,23 +173,31 @@ class DeviceBackup:
 
             staging = Path(mkdtemp(prefix=".pineapple-", dir=output_path.parent))
 
-            async with Mobilebackup2Service(lockdown) as service:
-                if encrypt and not await service.get_will_encrypt():
-                    self._set(
-                        phase="preparing",
-                        note="Enabling backup encryption on the device. Unlock "
-                        "it and enter the passcode if prompted.",
-                    )
-                    # Set before the call: a cancel mid-change must still trigger
-                    # the restore attempt, even if the enable half-applied.
-                    we_enabled_encryption = True
-                    await service.change_password(new=password)
+            # Each device operation gets its own Mobilebackup2Service context:
+            # the com.apple.mobilebackup2 session is single-use (one DeviceLink
+            # operation, then DLMessageDisconnect), so reusing one instance for
+            # "enable encryption" then "back up" runs the backup on a dead
+            # session. _restore_encryption already follows this rule.
+            if encrypt:
+                async with Mobilebackup2Service(lockdown) as prep:
+                    if not await prep.get_will_encrypt():
+                        self._set(
+                            phase="preparing",
+                            note="Enabling backup encryption on the device. Unlock "
+                            "it and enter the passcode if prompted.",
+                        )
+                        # Set before the call: a cancel mid-change must still
+                        # trigger the restore attempt, even if the enable
+                        # half-applied.
+                        we_enabled_encryption = True
+                        await prep.change_password(new=password)
 
-                self._set(
-                    phase="backing_up",
-                    percent=0.0,
-                    note="Backing up the device. Keep it unlocked and connected.",
-                )
+            self._set(
+                phase="backing_up",
+                percent=0.0,
+                note="Backing up the device. Keep it unlocked and connected.",
+            )
+            async with Mobilebackup2Service(lockdown) as service:
                 await service.backup(
                     full=True,
                     backup_directory=str(staging),

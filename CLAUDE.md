@@ -130,10 +130,14 @@ buttons, emoji, purple, glassmorphism).
   Encryption is a *device* setting: for an encrypted backup on a device that does
   not already encrypt, it calls `change_password(new=…)` first and always
   restores the original state (`change_password(old=…)`) afterwards — on success,
-  failure and cancel alike (shielded so a cancel still runs it). `progress()`
-  reports `phase` (`preparing` / `backing_up` / `packaging` /
-  `restoring_encryption` / `done` / `error` / `cancelled`), `percent`, `note`,
-  `output_path`. Same "Trust this computer" requirement as `get_device_info`.
+  failure and cancel alike (shielded so a cancel still runs it). Each device
+  operation (enable / backup / restore) opens its **own** `Mobilebackup2Service`
+  context: the `com.apple.mobilebackup2` session is single-use (one DeviceLink
+  operation, then `DLMessageDisconnect`), so reusing one instance runs the
+  second operation on a dead session. `progress()` reports `phase` (`preparing` /
+  `backing_up` / `packaging` / `restoring_encryption` / `done` / `error` /
+  `cancelled`), `percent`, `note`, `output_path`. Same "Trust this computer"
+  requirement as `get_device_info`.
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.

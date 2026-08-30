@@ -116,6 +116,22 @@ def test_encrypted_backup_enables_then_restores_device_encryption(
     assert "Restored" in str(state["note"])
 
 
+def test_encrypted_backup_opens_a_fresh_connection_for_the_backup(
+    device_session: DeviceSession, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Regression: enabling encryption and running the backup must not share one
+    Mobilebackup2Service instance (its device-link session is single-use)."""
+    factory = FakeBackupServiceFactory(UDID, will_encrypt=False)
+    patch_backend(monkeypatch, factory)
+
+    backup = DeviceBackup(device_session)
+    backup.start(str(tmp_path / "image.pineapple"), encrypt=True, password="pw")
+
+    state = wait_for_phase(backup, {"done", "error"})
+    assert state["phase"] == "done"
+    assert (tmp_path / "image.pineapple").exists()
+
+
 def test_encrypted_backup_on_already_encrypting_device_skips_change_password(
     device_session: DeviceSession, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

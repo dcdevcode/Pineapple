@@ -39,6 +39,10 @@ class FakeMobilebackup2Service:
     One ``calls`` list is shared across every instance a factory hands out, so a
     test can assert on both the backup call and the later encryption-restore
     call made from a fresh service instance.
+
+    The real ``com.apple.mobilebackup2`` session is single-use -- one DeviceLink
+    operation, then ``DLMessageDisconnect`` -- so this fake raises if a single
+    instance is used for more than one of ``change_password`` / ``backup``.
     """
 
     def __init__(
@@ -59,6 +63,7 @@ class FakeMobilebackup2Service:
         self._hang = hang
         self._percentages = percentages
         self._files = files
+        self._link_used = False
 
     async def __aenter__(self) -> FakeMobilebackup2Service:
         return self
@@ -66,10 +71,16 @@ class FakeMobilebackup2Service:
     async def __aexit__(self, *exc: object) -> bool:
         return False
 
+    def _use_link(self) -> None:
+        if self._link_used:
+            raise RuntimeError("device link already disconnected")
+        self._link_used = True
+
     async def get_will_encrypt(self) -> bool:
         return self._will_encrypt
 
     async def change_password(self, old: str = "", new: str = "") -> None:
+        self._use_link()
         self._calls.append(("change_password", old, new))
 
     async def backup(
@@ -80,6 +91,7 @@ class FakeMobilebackup2Service:
         password: str,
         progress_callback: Callable[[float], None],
     ) -> None:
+        self._use_link()
         self._calls.append(("backup", full, password))
         device_directory = Path(backup_directory) / self._udid
         device_directory.mkdir(parents=True, exist_ok=True)
