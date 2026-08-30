@@ -23,6 +23,7 @@ from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes
+from pineapple.analysis.parsers.photos import parse_photos
 from pineapple.analysis.parsers.safari import (
     parse_safari_bookmarks,
     parse_safari_history,
@@ -74,6 +75,12 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "NoteStore.sqlite",
         "AppDomainGroup-group.com.apple.notes",
         parse_notes,
+    ),
+    ParserSpec(
+        "photos",
+        "Media/PhotoData/Photos.sqlite",
+        "CameraRollDomain",
+        parse_photos,
     ),
     ParserSpec(
         "safari_history",

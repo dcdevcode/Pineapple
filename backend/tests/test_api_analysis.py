@@ -110,6 +110,8 @@ def test_new_artifact_queries_answer_from_the_case(image: Path, tmp_path: Path) 
     _run_to_done(api, image, tmp_path / "case")
 
     assert api.analysis_notes()["result"]["total"] == 1
+    assert api.analysis_photos()["result"]["total"] == 2
+    assert api.analysis_photo_albums()["result"]["total"] == 1
     assert api.analysis_safari_history()["result"]["total"] == 2
     assert api.analysis_safari_bookmarks()["result"]["total"] == 1
     assert api.analysis_whatsapp_chats()["result"]["total"] == 1

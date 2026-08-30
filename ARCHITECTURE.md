@@ -272,6 +272,7 @@ read-only via `_common.read_source(path, label)` (which maps `sqlite3.Error`
 | `calls` | `…/CallHistoryDB/CallHistory.storedata` | Core Data; **`encrypted_only`** |
 | `contacts` | `…/AddressBook/AddressBook.sqlitedb` | names + `ABMultiValue` phones/emails |
 | `notes` | `AppDomainGroup-group.com.apple.notes/NoteStore.sqlite` | body is gzip + protobuf (§8) |
+| `photos` | `CameraRollDomain/Media/PhotoData/Photos.sqlite` | Core Data; fills `photos` + `photo_albums`; each row keeps the asset's Manifest file id for preview |
 | `safari_history` | `…/Safari/History.db` | **`encrypted_only`** |
 | `safari_bookmarks` | `…/Safari/Bookmarks.db` | self-referential table, `type` 1 = bookmark |
 | `whatsapp` | `AppDomainGroup-group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite` | fills `whatsapp_chats` + `whatsapp_messages` (`count_key`) |

@@ -373,6 +373,38 @@ class CaseHandle:
             offset,
         )
 
+    def photos(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """One page of camera-roll assets, newest first; ``search`` matches the
+        filename or directory."""
+        where, params = self._search_where(search, "filename", "directory")
+        return self._page_query(
+            "SELECT rowid, file_id, filename, directory, kind, created_utc, "
+            "added_utc, width, height, favorite, hidden, trashed, latitude, "
+            f"longitude FROM photos {where} ORDER BY created_utc DESC",
+            f"SELECT COUNT(*) FROM photos {where}",
+            params,
+            limit,
+            offset,
+        )
+
+    def photo_albums(
+        self, limit: int = DEFAULT_PAGE, offset: int = 0
+    ) -> dict[str, Any]:
+        """One page of photo albums, by title."""
+        return self._page_query(
+            "SELECT rowid, title, kind, count, start_utc, end_utc "
+            "FROM photo_albums ORDER BY title",
+            "SELECT COUNT(*) FROM photo_albums",
+            [],
+            limit,
+            offset,
+        )
+
     # -- backup file access -------------------------------------------------
 
     def files_unlocked(self) -> bool:

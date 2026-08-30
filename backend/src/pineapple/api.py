@@ -340,6 +340,16 @@ class Api:
             lambda case: case.whatsapp_messages(chat_jid, search, limit, offset)
         )
 
+    def analysis_photos(
+        self, search: str | None = None, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.photos(search, limit, offset))
+
+    def analysis_photo_albums(
+        self, limit: int = 200, offset: int = 0
+    ) -> dict[str, Any]:
+        return self._case_query(lambda case: case.photo_albums(limit, offset))
+
     def analysis_preview_file(self, file_id: str) -> dict[str, Any]:
         """A size-capped, classified preview of one backup file's contents."""
         return self._case_query(lambda case: case.preview_file(file_id))

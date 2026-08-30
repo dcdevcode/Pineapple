@@ -20,6 +20,7 @@ from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes, walk_protobuf_string
+from pineapple.analysis.parsers.photos import parse_photos
 from pineapple.analysis.parsers.safari import (
     parse_safari_bookmarks,
     parse_safari_history,
@@ -137,6 +138,33 @@ def test_parse_whatsapp_fills_chats_and_messages(
     assert rows[1]["chat_name"] == "Alice"
 
 
+def test_parse_photos_reads_assets_and_albums(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_photos(
+        _source(backup, "CameraRollDomain", "Media/PhotoData/Photos.sqlite"), conn
+    )
+
+    assert written == 2
+    rows = conn.execute("SELECT * FROM photos ORDER BY rowid").fetchall()
+    assert rows[0]["filename"] == "IMG_0001.HEIC"
+    assert rows[0]["kind"] == "image"
+    assert rows[0]["favorite"] == 1
+    assert rows[0]["latitude"] == 37.33
+    assert rows[0]["created_utc"].startswith("2023-")
+    assert rows[0]["file_id"] == file_id(
+        "CameraRollDomain", "Media/DCIM/100APPLE/IMG_0001.HEIC"
+    )
+    assert rows[1]["kind"] == "video"
+    assert rows[1]["hidden"] == 1
+    assert rows[1]["latitude"] is None
+
+    albums = conn.execute("SELECT * FROM photo_albums").fetchall()
+    assert [a["title"] for a in albums] == ["Holidays"]
+    assert albums[0]["count"] == 12
+    assert albums[0]["kind"] == "user"
+
+
 def test_parse_calls_maps_direction_and_service(
     conn: sqlite3.Connection, backup: Path
 ) -> None:
@@ -173,14 +201,27 @@ def test_parse_contacts_flattens_multivalues(
     assert hopper["phones"] is None
 
 
+@pytest.mark.parametrize(
+    "parser",
+    [
+        parse_messages,
+        parse_notes,
+        parse_photos,
+        parse_calls,
+        parse_contacts,
+        parse_safari_history,
+        parse_safari_bookmarks,
+        parse_whatsapp,
+    ],
+)
 def test_parser_raises_artifact_unreadable_on_a_bad_db(
-    conn: sqlite3.Connection, tmp_path: Path
+    conn: sqlite3.Connection, tmp_path: Path, parser: object
 ) -> None:
-    broken = tmp_path / "sms.db"
+    broken = tmp_path / "source.db"
     broken.write_bytes(b"SQLite format 3\x00 but not really")
 
     with pytest.raises(ArtifactUnreadable):
-        parse_messages(broken, conn)
+        parser(broken, conn)  # type: ignore[operator]
 
 
 def test_index_files_records_dirs_sizes_and_symlink_targets(

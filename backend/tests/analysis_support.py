@@ -224,6 +224,31 @@ INSERT INTO ZCALLRECORD VALUES (3, 700000200.0, 65.0, 'a@b.com', 0, 1, 'FaceTime
     )
 
 
+def _photos(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE ZASSET (
+    Z_PK INTEGER PRIMARY KEY, ZFILENAME TEXT, ZDIRECTORY TEXT, ZKIND INTEGER,
+    ZDATECREATED REAL, ZADDEDDATE REAL, ZWIDTH INTEGER, ZHEIGHT INTEGER,
+    ZFAVORITE INTEGER, ZHIDDEN INTEGER, ZTRASHEDSTATE INTEGER,
+    ZLATITUDE REAL, ZLONGITUDE REAL
+);
+CREATE TABLE ZGENERICALBUM (
+    Z_PK INTEGER PRIMARY KEY, ZTITLE TEXT, ZKIND INTEGER, ZCACHEDCOUNT INTEGER,
+    ZSTARTDATE REAL, ZENDDATE REAL
+);
+INSERT INTO ZASSET VALUES
+    (1, 'IMG_0001.HEIC', 'DCIM/100APPLE', 0, 700000000.0, 700000050.0,
+     4032, 3024, 1, 0, 0, 37.33, -122.03),
+    (2, 'IMG_0002.MOV', 'DCIM/100APPLE', 1, 700000600.0, 700000650.0,
+     1920, 1080, 0, 1, 0, -180.0, -180.0);
+INSERT INTO ZGENERICALBUM VALUES (1, 'Holidays', 2, 12, 700000000.0, 700000600.0);
+INSERT INTO ZGENERICALBUM VALUES (2, NULL, 2, 0, NULL, NULL);
+        """,
+    )
+
+
 def _address_book(path: Path) -> None:
     _script(
         path,
@@ -258,6 +283,7 @@ _SOURCES = (
     ),
     _SourceDb("HomeDomain", "Library/AddressBook/AddressBook.sqlitedb", _address_book),
     _SourceDb("AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite", _note_store),
+    _SourceDb("CameraRollDomain", "Media/PhotoData/Photos.sqlite", _photos),
     _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
     _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
     _SourceDb(
