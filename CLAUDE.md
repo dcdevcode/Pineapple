@@ -50,8 +50,8 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
 | `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. `analysis_support.py` builds a tiny real on-disk backup + `.pineapple` (sms / calls / contacts / notes / safari / whatsapp source DBs, a real `attributedBody` sample) and fakes `iphone_backup_decrypt`. |
-| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device**, **Analysis** and **About** tabs, the `Brand` lockup pinned top-left; starts device polling. |
-| `frontend/src/app/brand/` | `Brand`: the reusable `logo.png` lockup (pineapple mark + wordmark, one image). `size` is `compact` (default, shell) or `large` (About). |
+| `frontend/src/app/app.*` | Shell: an app header (grey strip, hairline under) whose row is a `mat-tab-group` — the `Brand` lockup left, then the **Device** / **Analysis** / **About** tabs (Material Symbols icon over label, amber active underline); starts device polling. |
+| `frontend/src/app/brand/` | `Brand`: the reusable `logo.png` lockup (pineapple mark + wordmark, one image). `size` is `compact` (default, header) or `large` (About). |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
@@ -104,6 +104,9 @@ buttons, emoji, purple, glassmorphism).
   not custom shadows or glow.
 - Typeface: **Roboto**, self-hosted via `@fontsource/roboto` (weights 400/500).
   No Google Fonts / CDN links — the app must work offline.
+- Icons: **Material Symbols Outlined**, self-hosted via `@fontsource-variable`
+  (offline), through `<mat-icon>`. Icons label controls — not decoration, and
+  never a substitute for the "no emoji" rule.
 - Material 8dp spacing grid and the standard Material type scale
   (`var(--mat-sys-*)`).
 - **Forbidden**: gradients, glassmorphism / blur panels, neon glow, emoji, purple,

@@ -30,7 +30,7 @@ The theme is configured once in `styles.scss` via `mat.theme(...)`:
 - `primary` and `tertiary`: `mat.$yellow-palette`, but the low-contrast
   light-scheme olive is overridden to a **goldenrod amber** (`--mat-sys-primary:
   #b8860b`, `--mat-sys-primary-container: #ffe1a8`) — a nod to the pineapple,
-  used as an **accent only**: the selected tab pill, focus rings, the
+  used as an **accent only**: the active tab underline, focus rings, the
   primary/filled button. **Never** large amber fills, amber backgrounds, or
   amber gradients. The accent is only ~3:1 on white, so anything using it as
   *text* (e.g. the About links) also carries a non-colour cue such as an
@@ -95,17 +95,33 @@ These are the reusable shapes already in the app. Match them.
 
 `brand/` — the full product logo (`public/logo.png`: the pineapple mark plus the
 "Pineapple" wordmark, a single image) rendered as one `<img>` sized by height.
-`size` is `compact` (34 px — the default, pinned top-left of the shell, level
-with the tab row) or `large` (52 px — the About tab). Reuse it anywhere the app
-names itself; never re-typeset the wordmark. The logo is the product mark, so it
-keeps its own colour — it is not subject to the monochrome line-art rule below.
+`size` is `compact` (34 px — the default, in the left column of the app header)
+or `large` (52 px — the About tab). Reuse it anywhere the app names itself;
+never re-typeset the wordmark. The logo is the product mark, so it keeps its own
+colour — it is not subject to the monochrome line-art rule below.
 
-### Tab bar as an MD3 segmented control
+### App header + tabs
 
-`app.html` is a `mat-tab-group` (Device / Analysis / About). `styles.scss`
-restyles it into a centred, rounded "pill" container: no ink bar, no header
-divider, the active tab is a filled pill on `--mat-sys-secondary-container`.
-Implemented against MDC classes because the pill shape has no token.
+`app.html` is a `mat-tab-group` (Device / Analysis / About) whose header row
+_is_ the app header: a subtle grey strip (`--app-surface`) with a full-width
+hairline underneath, no shadow. The `Brand` lockup sits absolutely in its left
+column (width `--app-brand-col`, which the tab-header clears with a matching
+`padding-left`); height is `--app-header-height` (both tokens live on `html` in
+`styles.scss`).
+
+Traditional tabs, not a segmented control: each tab is a **Material Symbols
+Outlined** icon (`phone_iphone` / `manage_search` / `info`) stacked over its
+label via an `<ng-template mat-tab-label>`, an amber underline
+(`--mat-sys-primary`) marks the active one, and icon + label stay text-coloured
+(`--app-text-muted` idle, `--app-text` active) — never amber. Most of it is
+`mat.tabs-overrides(...)` tokens; the header background/border and the
+label-stacking reach into MDC classes because there's no token for them.
+
+Icons: Material Symbols Outlined is self-hosted (`@fontsource-variable`, wired
+in `angular.json`); `MAT_ICON_DEFAULT_OPTIONS` in `app.config.ts` makes every
+`<mat-icon>` a Symbols ligature, and `styles.scss` points the fontSet class at
+the variable font. Decorative icons carry `aria-hidden="true"` and lean on the
+visible text label.
 
 ### Nav-rail (Analysis case browser)
 
@@ -149,6 +165,10 @@ pure function maps each backend phase to a human string.
 Clean monochrome **line-art of the real object**. The reference is the iPhone
 SVG in `device/phone-outline/phone-outline.html`: `currentColor` strokes, no
 fill, no photo, no 3D, no glow. Any new illustration follows that.
+
+**Icons** are the exception: UI affordances use Material Symbols Outlined (see
+"App header + tabs"), sized in `px`, coloured by `currentColor`. Icons label
+controls; they are not decoration.
 
 ## Accessibility
 

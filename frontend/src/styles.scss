@@ -1,6 +1,6 @@
 // Angular Material theme (Material Design 3). Light color scheme only — no theme
 // switch. A goldenrod amber is an accent only (see CLAUDE.md design system):
-// focus rings, the selected tab pill, the primary button — never large amber
+// focus rings, the active tab underline, the primary button — never large amber
 // fills or gradients.
 @use '@angular/material' as mat;
 
@@ -32,15 +32,21 @@ html {
   --mat-sys-tertiary-container: #ffe1a8;
   --mat-sys-on-tertiary-container: #271900;
 
-  // Render the three-tab bar as a segmented control: no ink bar, no header
-  // divider, the active label reads on the selected pill (styled below).
+  // Traditional tabs: an amber underline marks the active tab; the hairline
+  // under the whole header is drawn in the app-root block below (full width,
+  // past the brand), so the Material divider is off. Icon + label stay
+  // text-coloured (muted when idle), never amber — hover/focus included.
   @include mat.tabs-overrides(
     (
+      container-height: var(--app-header-height),
       divider-height: 0,
-      active-indicator-color: transparent,
-      active-label-text-color: var(--mat-sys-on-secondary-container),
-      active-focus-label-text-color: var(--mat-sys-on-secondary-container),
-      active-hover-label-text-color: var(--mat-sys-on-secondary-container),
+      active-indicator-color: var(--mat-sys-primary),
+      inactive-label-text-color: var(--app-text-muted),
+      active-label-text-color: var(--app-text),
+      inactive-focus-label-text-color: var(--app-text),
+      inactive-hover-label-text-color: var(--app-text),
+      active-focus-label-text-color: var(--app-text),
+      active-hover-label-text-color: var(--app-text),
     )
   );
 
@@ -51,6 +57,11 @@ html {
   --app-border: rgba(0, 0, 0, 0.12);
   --app-text: rgba(0, 0, 0, 0.87);
   --app-text-muted: rgba(0, 0, 0, 0.6);
+
+  // App-header geometry, shared by the tab-header strip below and the Brand box
+  // in app.scss. --app-brand-col tracks the rendered width of logo.png.
+  --app-header-height: 56px;
+  --app-brand-col: 184px;
 }
 
 body {
@@ -66,56 +77,46 @@ body {
     sans-serif;
 }
 
-// The tab shell fills the window; let the active tab panel take the remaining height.
-app-root .mat-mdc-tab-body-wrapper {
-  flex: 1;
+// The tab header doubles as the app header: a subtle grey strip with a
+// full-width hairline underneath, the Brand lockup in its left column
+// (positioned in app.scss), each tab a Material Symbols icon stacked over its
+// label. These rules reach into MDC classes only where there's no theme token
+// — the header background/border and the label stacking.
+app-root {
+  .mat-mdc-tab-body-wrapper {
+    flex: 1; // the active panel takes the height left under the header
+  }
+
+  .mat-mdc-tab-header {
+    background: var(--app-surface);
+    border-bottom: 1px solid var(--app-border);
+    padding-left: var(--app-brand-col); // clear the absolutely-placed Brand
+  }
+
+  // The label template (icon + text) sits in .mdc-tab__text-label; stack it.
+  // Selector matches Material's own specificity so this wins the cascade.
+  .mat-mdc-tab .mdc-tab__text-label {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .app-tab__icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  .app-tab__label {
+    font: var(--mat-sys-label-medium);
+  }
 }
 
-// Tab bar as an MD3 segmented control: the tabs sit in one centered, rounded
-// container and the active tab is a filled "pill". These rules target MDC's DOM
-// classes because the pill shape has no theme token to override.
-app-root {
-  .mat-mdc-tab-header {
-    justify-content: center;
-    padding: 16px 0 4px;
-    border: 0;
-  }
-
-  // Keep the tab list at its natural width so the container can be centered.
-  .mat-mdc-tab-label-container {
-    flex: 0 1 auto;
-  }
-
-  .mat-mdc-tab-list {
-    flex-grow: 0;
-  }
-
-  // Drop the ink-bar element entirely (the token only makes it transparent).
-  .mat-mdc-tab .mdc-tab-indicator {
-    display: none;
-  }
-
-  // The rounded container ("bubble") wrapping both tabs.
-  .mat-mdc-tab-labels {
-    justify-content: center;
-    gap: 4px;
-    padding: 4px;
-    background: var(--app-surface);
-    border: 1px solid var(--app-border);
-    border-radius: 999px;
-  }
-
-  .mat-mdc-tab.mdc-tab {
-    flex-grow: 0;
-    min-width: 0;
-    height: 40px;
-    min-height: 40px;
-    padding: 0 20px;
-    border-radius: 999px;
-    overflow: hidden; // clip the ripple / state layer to the pill
-  }
-
-  .mat-mdc-tab.mdc-tab--active {
-    background: var(--mat-sys-secondary-container);
-  }
+// Material Symbols Outlined is self-hosted (@fontsource-variable, wired in
+// angular.json); MatIcon tags every icon with this fontSet class (set once in
+// app.config.ts). Point it at the variable font and enable ligatures.
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined Variable';
+  font-weight: 400;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
 }

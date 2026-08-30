@@ -8,14 +8,18 @@
   height: 100%;
 }
 
-// The brand sits at the top-left, vertically centered on the tab-header row
-// (16px top + 40px pill + 4px bottom); the tab pill stays centered underneath.
+// The brand sits in the left column of the header strip, level with the tabs.
 .app-shell__brand {
   position: absolute;
   top: 0;
-  left: 16px;
-  height: 60px;
+  left: 0;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: var(--app-brand-col);
+  height: var(--app-header-height);
+  padding-left: 20px;
 }
 
 .app-tabs {

@@ -18,13 +18,18 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should render the Device, Analysis and About tabs', async () => {
+  it('should render the Device, Analysis and About tabs, each with an icon', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const labels = Array.from(fixture.nativeElement.querySelectorAll('.mdc-tab__text-label')).map(
-      (el) => (el as HTMLElement).textContent?.trim(),
+    const tabs = Array.from(fixture.nativeElement.querySelectorAll('.mdc-tab__text-label'));
+    const labels = tabs.map((el) =>
+      (el as HTMLElement).querySelector('.app-tab__label')?.textContent?.trim(),
     );
     expect(labels).toEqual(['Device', 'Analysis', 'About']);
+    const icons = tabs.map((el) =>
+      (el as HTMLElement).querySelector('mat-icon')?.textContent?.trim(),
+    );
+    expect(icons).toEqual(['phone_iphone', 'manage_search', 'info']);
   });
 
   it('should show the brand lockup in the top-left', async () => {

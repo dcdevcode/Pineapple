@@ -34,6 +34,7 @@
             "styles": [
               "@fontsource/roboto/latin-400.css",
               "@fontsource/roboto/latin-500.css",
+              "@fontsource-variable/material-symbols-outlined/index.css",
               "src/styles.scss"
             ]
           },

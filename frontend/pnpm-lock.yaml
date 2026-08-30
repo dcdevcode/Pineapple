@@ -29,6 +29,9 @@ importers:
       '@angular/platform-browser':
         specifier: ^22.1.0
         version: 22.1.4(@angular/animations@22.1.4(@angular/core@22.1.4(@angular/compiler@22.1.4)(rxjs@7.8.2)))(@angular/common@22.1.4(@angular/core@22.1.4(@angular/compiler@22.1.4)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.4(@angular/compiler@22.1.4)(rxjs@7.8.2))
+      '@fontsource-variable/material-symbols-outlined':
+        specifier: ^5.3.3
+        version: 5.3.3
       '@fontsource/roboto':
         specifier: ^5.3.0
         version: 5.3.0
@@ -630,6 +633,9 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource-variable/material-symbols-outlined@5.3.3':
+    resolution: {integrity: sha512-7t2/MC7Nd7F0019PDj75nLUeT3TM2jlSTjyZr3mp/ZOnpHSwCNKepSOyiJhE5ihVg7bZihe9djHLwZ39v4yRmw==}
 
   '@fontsource/roboto@5.3.0':
     resolution: {integrity: sha512-BapRJOWYP+LZ21zp+wBQjfpPYKRoxc4LspJ/RLuI+HSMBD5u/X4O+ESDrSvEqDSy0rAl7GwBJ+09mdc16cVQ1Q==}
@@ -3468,6 +3474,8 @@ snapshots:
       levn: 0.4.1
 
   '@exodus/bytes@1.15.1': {}
+
+  '@fontsource-variable/material-symbols-outlined@5.3.3': {}
 
   '@fontsource/roboto@5.3.0': {}
 

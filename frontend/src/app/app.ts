@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject } from '@angular/core';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatIconModule } from '@angular/material/icon';
 import { Device } from './device/device';
 import { Analysis } from './analysis/analysis';
 import { About } from './about/about';
@@ -8,7 +9,7 @@ import { DeviceService } from './device/device.service';
 
 @Component({
   selector: 'app-root',
-  imports: [MatTabsModule, Device, Analysis, About, Brand],
+  imports: [MatTabsModule, MatIconModule, Device, Analysis, About, Brand],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
