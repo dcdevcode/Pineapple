@@ -156,10 +156,14 @@ buttons, emoji, purple, glassmorphism).
   extraction yet. One analysis per case folder: `<title>.json` (the descriptor
   the frontend lists / reopens; `<title>` defaults to the device serial),
   `backup/<udid>/`, `decrypted/`, `analysis.db`. `case.load_case()` reopens a
-  folder and answers paginated read queries. Parsers (`messages` = `sms.db`,
-  `calls` = `CallHistory.storedata`, `contacts` = `AddressBook.sqlitedb`) are
-  tolerant: a missing or damaged source DB is recorded as skipped, not fatal.
-  All timestamps are stored as ISO-8601 UTC.
+  folder and answers paginated read queries; its `CaseHandle` opens a fresh
+  short-lived connection per query (pywebview's worker-thread pool + SQLite's
+  one-thread-per-connection rule). Parsers (`messages` = `sms.db`, `calls` =
+  `CallHistory.storedata`, `contacts` = `AddressBook.sqlitedb`) are tolerant: a
+  missing or damaged source DB is recorded as skipped, not fatal. `calls` is
+  `encrypted_only` — iOS keeps `CallHistory.storedata` out of *unencrypted*
+  backups, so its absence there is expected and the skip note says so. All
+  timestamps are stored as ISO-8601 UTC.
 - `api.py` analysis bridge: `choose_pineapple_file` / `choose_case_folder`
   (native dialogs), `analysis_peek`, `start_analysis` / `read_analysis_progress`
   / `cancel_analysis` drive one `AnalysisRun` (and load the case on `done`),

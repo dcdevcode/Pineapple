@@ -13,6 +13,7 @@ from analysis_support import (
     SERIAL,
     FakeEncryptedBackup,
     build_backup,
+    file_id,
     make_pineapple,
 )
 from pineapple.analysis import reader as reader_module
@@ -116,6 +117,25 @@ def test_missing_source_db_is_skipped_not_fatal(
     assert state["phase"] == "done", state
     assert state["counts"].get("messages", 0) == 0
     assert any("messages" in note for note in state["skipped"])
+
+
+def test_absent_calls_db_is_explained_for_an_unencrypted_backup(
+    device_session: DeviceSession, tmp_path: Path
+) -> None:
+    """CallHistory.storedata is only in encrypted backups; the skip note says so."""
+    root = build_backup(tmp_path / "src")
+    fid = file_id("HomeDomain", "Library/CallHistoryDB/CallHistory.storedata")
+    (root / fid[:2] / fid).unlink()  # drop only the call-history blob
+    image = make_pineapple(root, tmp_path / "image.pineapple")
+
+    run = AnalysisRun(device_session)
+    run.start(str(image), str(tmp_path / "case"), "", "")
+    state = _wait(run, {"done", "error"})
+
+    assert state["phase"] == "done", state
+    assert state["counts"]["messages"] == 3
+    calls_note = next(n for n in state["skipped"] if n.startswith("calls:"))
+    assert "encrypted" in calls_note
 
 
 def test_refuses_a_folder_that_already_holds_an_analysis(

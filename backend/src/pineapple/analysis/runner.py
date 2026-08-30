@@ -262,7 +262,13 @@ class AnalysisRun:
                 spec.relative_path, spec.domain, params.case_dir / "decrypted"
             )
             if source is None:
-                skipped.append(f"{spec.name}: not present in the backup")
+                if spec.encrypted_only and not params.metadata.is_encrypted:
+                    skipped.append(
+                        f"{spec.name}: not in this backup — only included when the "
+                        "backup is encrypted"
+                    )
+                else:
+                    skipped.append(f"{spec.name}: not present in the backup")
                 continue
             try:
                 counts[spec.name] = spec.parse(source, conn)

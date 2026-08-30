@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import plistlib
 import sqlite3
+import threading
 from pathlib import Path
 
 import pytest
@@ -84,6 +85,24 @@ def test_queries_paginate_and_filter(case_dir: Path) -> None:
         assert files["total"] == 1
     finally:
         handle.close()
+
+
+def test_queries_work_from_another_thread(case_dir: Path) -> None:
+    """Regression: pywebview answers calls on a thread pool, so a CaseHandle
+    must not pin a SQLite connection to the thread that opened it."""
+    handle = load_case(case_dir)
+    results: list[object] = []
+
+    def query() -> None:
+        results.append(handle.summary()["counts"]["messages"])
+        results.append(handle.messages(limit=1)["total"])
+
+    worker = threading.Thread(target=query)
+    worker.start()
+    worker.join()
+    handle.close()
+
+    assert results == [3, 3]
 
 
 def test_load_case_rejects_a_plain_folder(tmp_path: Path) -> None:

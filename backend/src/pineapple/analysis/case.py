@@ -1,8 +1,15 @@
-"""Open a parsed case folder and answer the frontend's read-only queries."""
+"""Open a parsed case folder and answer the frontend's read-only queries.
+
+Each query opens its own short-lived ``sqlite3`` connection: pywebview answers
+bridge calls on a small thread pool, and a SQLite connection may only be used on
+the thread that created it, so a persistent connection would break as soon as a
+second call landed on a different worker thread.
+"""
 
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -26,15 +33,19 @@ def _page(limit: int, offset: int) -> tuple[int, int]:
 
 
 class CaseHandle:
-    """A loaded case: its descriptor plus a read-only ``analysis.db`` connection."""
+    """A loaded case: its descriptor plus read access to ``analysis.db``."""
 
     def __init__(
-        self, case_dir: Path, descriptor: CaseDescriptor, conn: sqlite3.Connection
+        self, case_dir: Path, descriptor: CaseDescriptor, database: Path
     ) -> None:
         self.case_dir = case_dir
         self._descriptor = descriptor
-        self._conn = conn
-        self._conn.row_factory = sqlite3.Row
+        self._database = database
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(f"file:{self._database}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        return conn
 
     # -- descriptor / summary ---------------------------------------------
 
@@ -42,11 +53,12 @@ class CaseHandle:
         return self._descriptor.to_dict()
 
     def summary(self) -> dict[str, Any]:
-        row = self._conn.execute("SELECT * FROM backup_info LIMIT 1").fetchone()
-        counts = {
-            table: self._conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-            for table in _COUNT_TABLES
-        }
+        with closing(self._connect()) as conn:
+            row = conn.execute("SELECT * FROM backup_info LIMIT 1").fetchone()
+            counts = {
+                table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in _COUNT_TABLES
+            }
         return {
             "title": self._descriptor.title,
             "device": dict(row) if row else self._descriptor.device,
@@ -58,12 +70,22 @@ class CaseHandle:
     # -- artifact queries ------------------------------------------------
 
     def apps(self) -> list[dict[str, Any]]:
-        return [
-            dict(row)
-            for row in self._conn.execute(
-                "SELECT bundle_id, name, version FROM apps ORDER BY bundle_id"
-            )
-        ]
+        with closing(self._connect()) as conn:
+            return [
+                dict(row)
+                for row in conn.execute(
+                    "SELECT bundle_id, name, version FROM apps ORDER BY bundle_id"
+                )
+            ]
+
+    def domains(self) -> list[dict[str, Any]]:
+        with closing(self._connect()) as conn:
+            return [
+                {"domain": row[0], "count": row[1]}
+                for row in conn.execute(
+                    "SELECT domain, COUNT(*) FROM files GROUP BY domain ORDER BY domain"
+                )
+            ]
 
     def files(
         self,
@@ -81,14 +103,6 @@ class CaseHandle:
             limit,
             offset,
         )
-
-    def domains(self) -> list[dict[str, Any]]:
-        return [
-            {"domain": row[0], "count": row[1]}
-            for row in self._conn.execute(
-                "SELECT domain, COUNT(*) FROM files GROUP BY domain ORDER BY domain"
-            )
-        ]
 
     def messages(
         self,
@@ -144,7 +158,7 @@ class CaseHandle:
         )
 
     def close(self) -> None:
-        self._conn.close()
+        """Kept for API symmetry; no persistent connection is held."""
 
     # -- internals ------------------------------------------------------
 
@@ -170,10 +184,11 @@ class CaseHandle:
         offset: int,
     ) -> dict[str, Any]:
         limit, offset = _page(limit, offset)
-        total = self._conn.execute(count_sql, params).fetchone()[0]
-        rows = self._conn.execute(
-            f"{rows_sql} LIMIT ? OFFSET ?", [*params, limit, offset]
-        ).fetchall()
+        with closing(self._connect()) as conn:
+            total = conn.execute(count_sql, params).fetchone()[0]
+            rows = conn.execute(
+                f"{rows_sql} LIMIT ? OFFSET ?", [*params, limit, offset]
+            ).fetchall()
         return {
             "rows": [dict(row) for row in rows],
             "total": total,
@@ -198,5 +213,13 @@ def load_case(case_dir: str | Path) -> CaseHandle:
     database = path / ANALYSIS_DB
     if not database.is_file():
         raise AnalysisError(f"{path} has a descriptor but no {ANALYSIS_DB}.")
-    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
-    return CaseHandle(path, descriptor, conn)
+    with closing(sqlite3.connect(f"file:{database}?mode=ro", uri=True)) as conn:
+        version = conn.execute(
+            "SELECT value FROM case_meta WHERE key = 'schema_version'"
+        ).fetchone()
+    if version is not None and int(version[0]) != SCHEMA_VERSION:
+        raise AnalysisError(
+            f"{ANALYSIS_DB} was written by schema v{version[0]}; "
+            f"this build expects v{SCHEMA_VERSION}."
+        )
+    return CaseHandle(path, descriptor, database)

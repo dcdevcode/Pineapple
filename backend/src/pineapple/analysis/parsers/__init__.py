@@ -34,6 +34,10 @@ class ParserSpec:
     relative_path: str
     domain: str
     parse: ParseFn
+    # iOS keeps some files (call history, keychain, Safari, Health) out of
+    # *unencrypted* backups; when one of those is missing and the backup is not
+    # encrypted, that is expected rather than an anomaly.
+    encrypted_only: bool = False
 
 
 ARTIFACT_PARSERS: list[ParserSpec] = [
@@ -43,6 +47,7 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "Library/CallHistoryDB/CallHistory.storedata",
         "HomeDomain",
         parse_calls,
+        encrypted_only=True,
     ),
     ParserSpec(
         "contacts",
