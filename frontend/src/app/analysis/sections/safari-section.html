@@ -1,31 +1,22 @@
 <div class="safari">
-  <mat-button-toggle-group
-    class="safari__switch"
-    [ngModel]="view()"
-    (ngModelChange)="view.set($event)"
-    hideSingleSelectionIndicator
+  <app-artifact-table
+    class="safari__table"
+    [columns]="columns()"
+    [fetchPage]="fetch()"
+    [searchable]="true"
+    [scope]="view()"
+    [detailFields]="detail()"
+    [detailTitle]="urlTitle"
   >
-    <mat-button-toggle value="history">History</mat-button-toggle>
-    <mat-button-toggle value="bookmarks">Bookmarks</mat-button-toggle>
-  </mat-button-toggle-group>
-
-  @if (view() === 'history') {
-    <app-artifact-table
-      class="safari__table"
-      [columns]="historyColumns"
-      [fetchPage]="fetchHistory"
-      [searchable]="true"
-      [detailFields]="historyDetail"
-      [detailTitle]="urlTitle"
-    />
-  } @else {
-    <app-artifact-table
-      class="safari__table"
-      [columns]="bookmarkColumns"
-      [fetchPage]="fetchBookmarks"
-      [searchable]="true"
-      [detailFields]="bookmarkDetail"
-      [detailTitle]="urlTitle"
-    />
-  }
+    <mat-button-toggle-group
+      tableFilter
+      class="safari__switch"
+      [ngModel]="view()"
+      (ngModelChange)="view.set($event)"
+      hideSingleSelectionIndicator
+    >
+      <mat-button-toggle value="history">History</mat-button-toggle>
+      <mat-button-toggle value="bookmarks">Bookmarks</mat-button-toggle>
+    </mat-button-toggle-group>
+  </app-artifact-table>
 </div>

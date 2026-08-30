@@ -5,9 +5,19 @@
   height: 100%;
 }
 
-.table__search {
-  width: 280px;
+.table__toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 8px;
+}
+
+// A projected [tableFilter] control sits on the left; Search takes the far right
+// of the row (and wraps under it on a narrow window).
+.table__search {
+  width: 260px;
+  margin-left: auto;
 }
 
 .table__status {

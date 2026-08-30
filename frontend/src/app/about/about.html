@@ -1,0 +1,24 @@
+<div class="about">
+  <header class="about__head">
+    <h1 class="about__wordmark">Pineapple</h1>
+    <p class="about__byline">by Diego Corona</p>
+  </header>
+
+  <section class="about__thanks">
+    <h2 class="about__section-title">Thanks</h2>
+    <p class="about__lead">
+      Pineapple stands on a few projects that do the hard part — reaching the device, breaking the
+      backup encryption, and decoding what Apple stores.
+    </p>
+    <dl class="about__credits">
+      @for (credit of credits; track credit.name) {
+        <div class="about__credit">
+          <dt class="about__credit-name">
+            <a [href]="credit.url" target="_blank" rel="noopener">{{ credit.name }}</a>
+          </dt>
+          <dd class="about__credit-blurb">{{ credit.blurb }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+</div>

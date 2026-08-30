@@ -86,7 +86,9 @@
 }
 
 .analysis__count {
+  margin-left: auto;
   font: var(--mat-sys-label-small);
+  font-variant-numeric: tabular-nums;
   color: var(--app-text-muted);
 }
 

@@ -40,6 +40,10 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
  * A paged, optionally searchable table over one `analysis_*` query. Owns the
  * fetch loop: it re-runs {@link fetchPage} whenever the page or the (debounced)
  * search term changes and renders loading / empty / error states.
+ *
+ * A searchable table shows a toolbar row: project a filter control into it with
+ * the `tableFilter` attribute (`<mat-form-field tableFilter>` / a toggle group)
+ * and it sits to the left of the Search field.
  */
 @Component({
   selector: 'app-artifact-table',

@@ -4,27 +4,31 @@
   <dl class="detail__list">
     @for (field of data.fields; track field.label) {
       <div class="detail__row" [class.detail__row--long]="field.long">
-        <dt class="detail__label">{{ field.label }}</dt>
-        <dd class="detail__value">
-          @if (field.value) {
-            @if (field.long) {
+        @if (field.long) {
+          <div class="detail__head">
+            <dt class="detail__label">{{ field.label }}</dt>
+            @if (field.value) {
+              <ng-container *ngTemplateOutlet="copyButton; context: { $implicit: field }" />
+            }
+          </div>
+          <dd class="detail__value">
+            @if (field.value) {
               <pre class="detail__block">{{ field.value }}</pre>
             } @else {
-              <span class="detail__text">{{ field.value }}</span>
+              <span class="detail__empty">—</span>
             }
-            <button
-              matButton
-              type="button"
-              class="detail__copy"
-              (click)="copy(field)"
-              [attr.aria-label]="'Copy ' + field.label"
-            >
-              {{ copied() === field.label ? 'Copied' : 'Copy' }}
-            </button>
-          } @else {
-            <span class="detail__empty">—</span>
-          }
-        </dd>
+          </dd>
+        } @else {
+          <dt class="detail__label">{{ field.label }}</dt>
+          <dd class="detail__value">
+            @if (field.value) {
+              <span class="detail__text">{{ field.value }}</span>
+              <ng-container *ngTemplateOutlet="copyButton; context: { $implicit: field }" />
+            } @else {
+              <span class="detail__empty">—</span>
+            }
+          </dd>
+        }
       </div>
     }
   </dl>
@@ -82,3 +86,31 @@
   }
   <button matButton mat-dialog-close type="button">Close</button>
 </mat-dialog-actions>
+
+<ng-template #copyButton let-field>
+  <button
+    type="button"
+    class="detail__copy"
+    (click)="copy(field)"
+    [matTooltip]="copied() === field.label ? 'Copied' : 'Copy'"
+    [attr.aria-label]="'Copy ' + field.label"
+  >
+    <svg
+      class="detail__copy-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      @if (copied() === field.label) {
+        <path d="M20 6 9 17l-5-5" />
+      } @else {
+        <rect x="9" y="9" width="13" height="13" rx="2" />
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      }
+    </svg>
+  </button>
+</ng-template>

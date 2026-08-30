@@ -14,13 +14,13 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should render the Device and Analysis tabs', async () => {
+  it('should render the Device, Analysis and About tabs', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const labels = Array.from(fixture.nativeElement.querySelectorAll('.mdc-tab__text-label')).map(
       (el) => (el as HTMLElement).textContent?.trim(),
     );
-    expect(labels).toEqual(['Device', 'Analysis']);
+    expect(labels).toEqual(['Device', 'Analysis', 'About']);
   });
 
   it('should start watching for devices on creation', () => {

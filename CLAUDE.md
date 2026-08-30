@@ -43,13 +43,13 @@ inspects Apple devices connected over USB.
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
 | `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. `analysis_support.py` builds a tiny real on-disk backup + `.pineapple` (sms / calls / contacts / notes / safari / whatsapp source DBs, a real `attributedBody` sample) and fakes `iphone_backup_decrypt`. |
-| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
+| `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device**, **Analysis** and **About** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
-| `frontend/src/app/settings/` | Settings: floating gear (`SettingsButton`) opens `SettingsDialog` (nav-rail shell); each section is its own component (`ThemeSettings`). `ThemeService` owns the light/dark/system preference. |
-| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). Any table row opens `RecordDetailDialog` (all fields, full text, copy-per-field; Files adds content preview + Extract). |
-| `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
+| `frontend/src/app/about/` | About tab: the `Pineapple` wordmark, the author line, and a `Thanks` list crediting the core libraries (`pymobiledevice3`, `iphone_backup_decrypt`, `python-typedstream`, `pywebview`). Static — no bridge. |
+| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control (left) beside Search (right). Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
+| `frontend/src/styles.scss` | Global Angular Material theme — a single fixed **dark** scheme (no theme switch), yellow accent, a nod to the pineapple. |
 | `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / test / build) on every push and PR. |
 
 ## Common commands
@@ -217,14 +217,16 @@ buttons, emoji, purple, glassmorphism).
   component switches on (launcher vs browser). The browser is a nav-rail
   (`Overview`, `Apps`, `Files`, `Messages`, `Calls`, `Contacts`, `Notes`,
   `Safari`, `WhatsApp`). `ArtifactTable` is a generic `mat-table` +
-  `mat-paginator` that owns its fetch loop; when given `detailFields` a row click
-  opens the shared `RecordDetailDialog` (every field, full text, a copy button
-  per field; `detail-fields.ts` has the `field()` / `localTime()` / `duration()`
-  helpers). `FilesSection` additionally passes `resolvePreview` (→
+  `mat-paginator` that owns its fetch loop; a searchable one renders a toolbar
+  row where a section can project a filter control with the `[tableFilter]`
+  attribute (it sits left of Search). When given `detailFields` a row click
+  opens the shared `RecordDetailDialog` (every field, full text, a compact copy
+  icon per field; `detail-fields.ts` has the `field()` / `localTime()` /
+  `duration()` helpers). `FilesSection` additionally passes `resolvePreview` (→
   `analysis_preview_file`) and an `onExtract` action, and shows an unlock banner
   (password → `analysis_unlock`) for an encrypted case whose key was not retained.
-  `SafariSection` toggles History / Bookmarks; `WhatsappSection` scopes the
-  message table by a chosen chat. The service's query wrappers unwrap the
+  `SafariSection` is one table switched between History / Bookmarks by a
+  projected toggle; `WhatsappSection` scopes the message table by a chosen chat. The service's query wrappers unwrap the
   `{ok, result}` envelope and throw on `{ok:false}`. Re-opening a case is manual
   (the launcher's "Open existing analysis"); nothing is persisted locally. Idle
   no-op without the bridge.

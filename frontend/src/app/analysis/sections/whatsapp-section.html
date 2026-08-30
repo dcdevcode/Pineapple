@@ -1,16 +1,4 @@
 <div class="whatsapp">
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="whatsapp__chat">
-    <mat-label>Chat</mat-label>
-    <mat-select [ngModel]="chat()" (ngModelChange)="chat.set($event)">
-      <mat-option value="">All chats</mat-option>
-      @for (item of chats(); track item.rowid) {
-        <mat-option [value]="item.jid">
-          {{ item.name || item.jid }} ({{ item.message_count }})
-        </mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
-
   <app-artifact-table
     class="whatsapp__table"
     [columns]="columns"
@@ -19,5 +7,22 @@
     [scope]="chat()"
     [detailFields]="detail"
     [detailTitle]="title"
-  />
+  >
+    <mat-form-field
+      tableFilter
+      appearance="outline"
+      subscriptSizing="dynamic"
+      class="whatsapp__chat"
+    >
+      <mat-label>Chat</mat-label>
+      <mat-select [ngModel]="chat()" (ngModelChange)="chat.set($event)">
+        <mat-option value="">All chats</mat-option>
+        @for (item of chats(); track item.rowid) {
+          <mat-option [value]="item.jid">
+            {{ item.name || item.jid }} ({{ item.message_count }})
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </app-artifact-table>
 </div>

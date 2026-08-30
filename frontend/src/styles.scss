@@ -1,19 +1,17 @@
-// Material Design 3 theme (light / dark via `color-scheme`). Yellow is an accent
-// only (see CLAUDE.md design system).
+// Angular Material theme (Material Design 3). Dark color scheme only — no theme
+// switch. Yellow is an accent only (see CLAUDE.md design system): focus rings,
+// the selected tab pill, later the primary button — never large fills or
+// gradients.
 @use '@angular/material' as mat;
 
 html {
   height: 100%;
-  // Baseline for the "System" theme preference; ThemeService overrides this on
-  // <html> for an explicit Light / Dark choice.
-  color-scheme: light dark;
+  color-scheme: dark;
 
   @include mat.theme(
     (
       color: (
-        // Emit every color token via light-dark(); the active side follows the
-        // color-scheme property above.
-        theme-type: color-scheme,
+        theme-type: dark,
         primary: mat.$yellow-palette,
         tertiary: mat.$yellow-palette,
       ),
@@ -35,11 +33,11 @@ html {
   );
 
   // Surface tokens (dark is not pure black; depth comes from Material elevation).
-  --app-bg: light-dark(#fafafa, #121212);
-  --app-surface: light-dark(#ffffff, #1e1e1e);
-  --app-border: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.12));
-  --app-text: light-dark(rgba(0, 0, 0, 0.87), rgba(255, 255, 255, 0.87));
-  --app-text-muted: light-dark(rgba(0, 0, 0, 0.6), rgba(255, 255, 255, 0.6));
+  --app-bg: #121212;
+  --app-surface: #1e1e1e;
+  --app-border: rgba(255, 255, 255, 0.12);
+  --app-text: rgba(255, 255, 255, 0.87);
+  --app-text-muted: rgba(255, 255, 255, 0.6);
 }
 
 body {
@@ -66,7 +64,7 @@ app-root .mat-mdc-tab-body-wrapper {
 app-root {
   .mat-mdc-tab-header {
     justify-content: center;
-    padding: 16px 0 8px;
+    padding: 16px 0 4px;
     border: 0;
   }
 
@@ -77,6 +75,11 @@ app-root {
 
   .mat-mdc-tab-list {
     flex-grow: 0;
+  }
+
+  // Drop the ink-bar element entirely (the token only makes it transparent).
+  .mat-mdc-tab .mdc-tab-indicator {
+    display: none;
   }
 
   // The rounded container ("bubble") wrapping both tabs.

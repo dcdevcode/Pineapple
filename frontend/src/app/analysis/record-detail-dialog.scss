@@ -8,7 +8,7 @@
 
   &__row {
     display: grid;
-    grid-template-columns: 160px 1fr;
+    grid-template-columns: 150px 1fr;
     gap: 12px;
     align-items: start;
   }
@@ -16,6 +16,14 @@
   &__row--long {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  // Long rows: label and copy button share one line above the block.
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
 
   &__label {
@@ -26,10 +34,15 @@
 
   &__value {
     margin: 0;
-    display: flex;
-    align-items: baseline;
+    display: grid;
+    grid-template-columns: 1fr auto;
     gap: 8px;
+    align-items: center;
     min-width: 0;
+  }
+
+  &__row--long &__value {
+    display: block;
   }
 
   &__text {
@@ -43,6 +56,7 @@
     max-height: 320px;
     overflow: auto;
     background: var(--app-bg);
+    border: 1px solid var(--app-border);
     border-radius: 4px;
     font: var(--mat-sys-body-medium);
     font-family: 'Roboto Mono', ui-monospace, monospace;
@@ -50,8 +64,35 @@
     overflow-wrap: anywhere;
   }
 
+  // A light, quiet affordance — not a full Material button.
   &__copy {
     flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--mat-sys-on-surface-variant);
+    cursor: pointer;
+  }
+
+  &__copy:hover,
+  &__copy:focus-visible {
+    background: var(--mat-sys-surface-container-high);
+    color: var(--app-text);
+  }
+
+  &__head &__copy {
+    margin: -2px -4px -2px 0;
+  }
+
+  &__copy-icon {
+    width: 16px;
+    height: 16px;
   }
 
   &__empty {
@@ -72,8 +113,10 @@
   }
 
   &__image {
+    display: block;
     max-width: 100%;
     max-height: 400px;
+    border: 1px solid var(--app-border);
     border-radius: 4px;
   }
 

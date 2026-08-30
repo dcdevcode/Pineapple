@@ -1,6 +1,8 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import type { FilePreview } from './analysis.models';
 
 /** One label/value pair shown in the detail dialog. */
@@ -29,7 +31,7 @@ const COPIED_CLEAR_MS = 1500;
  */
 @Component({
   selector: 'app-record-detail-dialog',
-  imports: [MatButtonModule, MatDialogModule],
+  imports: [NgTemplateOutlet, MatButtonModule, MatDialogModule, MatTooltipModule],
   templateUrl: './record-detail-dialog.html',
   styleUrl: './record-detail-dialog.scss',
 })

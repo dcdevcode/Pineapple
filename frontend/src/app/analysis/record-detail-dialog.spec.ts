@@ -30,7 +30,9 @@ describe('RecordDetailDialog', () => {
     expect(el.textContent).toContain('Ada');
     expect(el.querySelector('.detail__block')?.textContent).toContain('a very long body');
 
-    el.querySelector<HTMLButtonElement>('.detail__copy')!.click();
+    const copy = el.querySelector<HTMLButtonElement>('.detail__copy')!;
+    expect(copy.getAttribute('aria-label')).toBe('Copy Phone');
+    copy.click();
     expect(writeText).toHaveBeenCalledWith('+15551234567');
     vi.unstubAllGlobals();
   });

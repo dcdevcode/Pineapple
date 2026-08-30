@@ -1,9 +1,15 @@
 <div class="table">
+  <!-- Toolbar: an optional projected [tableFilter] control on the left, Search on
+       the right. Only rendered for a searchable table (every section that
+       projects a filter is also searchable). -->
   @if (searchable()) {
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="table__search">
-      <mat-label>Search</mat-label>
-      <input matInput [ngModel]="search()" (ngModelChange)="onSearch($event)" />
-    </mat-form-field>
+    <div class="table__toolbar">
+      <ng-content select="[tableFilter]" />
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="table__search">
+        <mat-label>Search</mat-label>
+        <input matInput [ngModel]="search()" (ngModelChange)="onSearch($event)" />
+      </mat-form-field>
+    </div>
   }
 
   <div class="table__status">
