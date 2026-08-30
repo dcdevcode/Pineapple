@@ -23,7 +23,9 @@ inspects Apple devices connected over USB.
   `uv_build`, Python `>=3.14`. Device access via
   [`pymobiledevice3`](https://github.com/doronz88/pymobiledevice3); desktop window
   via [`pywebview`](https://pywebview.flowrl.com/); encrypted-backup decryption
-  via [`iphone_backup_decrypt`](https://github.com/jsharkey13/iphone_backup_decrypt).
+  via [`iphone_backup_decrypt`](https://github.com/jsharkey13/iphone_backup_decrypt);
+  iMessage `attributedBody` typedstream decoding via
+  [`pytypedstream`](https://github.com/dgelessus/python-typedstream) (`import typedstream`).
 - **Frontend** (`frontend/`): Angular + Angular Material, **`pnpm` only**
   (never `npm`/`yarn`). Rendered inside the pywebview window.
 
@@ -36,17 +38,17 @@ inspects Apple devices connected over USB.
 | `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
 | `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
 | `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
-| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `reader` (uniform access, encrypted via `iphone_backup_decrypt`), `schema` + `parsers/` (messages / calls / contacts / file index → `analysis.db`), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder and its read queries). |
+| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`), `schema` (v2) + `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / safari / whatsapp / file index → `analysis.db`), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup` / `analysis`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
-| `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. `analysis_support.py` builds a tiny real on-disk backup + `.pineapple` and fakes `iphone_backup_decrypt`. |
+| `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. `analysis_support.py` builds a tiny real on-disk backup + `.pineapple` (sms / calls / contacts / notes / safari / whatsapp source DBs, a real `attributedBody` sample) and fakes `iphone_backup_decrypt`. |
 | `frontend/src/app/app.*` | Shell: `mat-tab-group` with the **Device** and **Analysis** tabs; starts device polling. |
 | `frontend/src/app/device/` | Device tab: `DeviceService` (polls the bridge) + the empty / connected views. `phone-outline/` holds the iPhone SVG. |
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
 | `frontend/src/app/settings/` | Settings: floating gear (`SettingsButton`) opens `SettingsDialog` (nav-rail shell); each section is its own component (`ThemeSettings`). `ThemeService` owns the light/dark/system preference. |
-| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` sections + the generic `ArtifactTable` for apps / messages / calls / contacts). |
+| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). Any table row opens `RecordDetailDialog` (all fields, full text, copy-per-field; Files adds content preview + Extract). |
 | `frontend/src/styles.scss` | Global Angular Material theme (dark, yellow accent — a nod to the pineapple). |
 | `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / test / build) on every push and PR. |
 
@@ -152,25 +154,42 @@ buttons, emoji, purple, glassmorphism).
   / `opening` / `indexing` / `parsing` / `writing_descriptor` / `done` / `error`
   / `cancelled`), and on cancel or failure it rolls back the partial
   `analysis.db` and `<title>.json`. Only `Manifest.db` and the source DBs the
-  parsers need are decrypted (into `<case>/decrypted/`) — no bulk file
-  extraction yet. One analysis per case folder: `<title>.json` (the descriptor
-  the frontend lists / reopens; `<title>` defaults to the device serial),
-  `backup/<udid>/`, `decrypted/`, `analysis.db`. `case.load_case()` reopens a
-  folder and answers paginated read queries; its `CaseHandle` opens a fresh
-  short-lived connection per query (pywebview's worker-thread pool + SQLite's
-  one-thread-per-connection rule). Parsers (`messages` = `sms.db`, `calls` =
-  `CallHistory.storedata`, `contacts` = `AddressBook.sqlitedb`) are tolerant: a
-  missing or damaged source DB is recorded as skipped, not fatal. `calls` is
-  `encrypted_only` — iOS keeps `CallHistory.storedata` out of *unencrypted*
-  backups, so its absence there is expected and the skip note says so. All
-  timestamps are stored as ISO-8601 UTC.
+  parsers need are decrypted (into `<case>/decrypted/`); individual files are
+  pulled on demand (see below). One analysis per case folder: `<title>.json`
+  (the descriptor the frontend lists / reopens; `<title>` defaults to the device
+  serial), `backup/<udid>/`, `decrypted/`, `analysis.db`. `case.load_case()`
+  reopens a folder and answers paginated read queries; its `CaseHandle` opens a
+  fresh short-lived connection per query (pywebview's worker-thread pool +
+  SQLite's one-thread-per-connection rule). Parsers (`messages` = `sms.db` with
+  iOS-16+ `attributedBody` text recovered via `parsers/attributed_body.py`,
+  `calls` = `CallHistory.storedata`, `contacts` = `AddressBook.sqlitedb`,
+  `notes` = `NoteStore.sqlite` (gzip+protobuf body, best-effort), `safari_history`
+  / `safari_bookmarks` = `History.db` / `Bookmarks.db`, `whatsapp` =
+  `ChatStorage.sqlite` → two tables) are tolerant: a missing or damaged source
+  DB is recorded as skipped, not fatal. `calls` and `safari_history` are
+  `encrypted_only` — iOS keeps those out of *unencrypted* backups, so their
+  absence there is expected and the skip note says so. All timestamps ISO-8601
+  UTC. Schema is **v2**; `load_case` rejects a mismatch (re-analyze v1 cases).
+- `reader` / `CaseHandle` file access: `extract_file(file_id, …)` and
+  `read_bytes(file_id, …)` (regular files only) on both readers; `CaseHandle`
+  lazily opens a `BackupReader` against `<case>/backup/<udid>` — for an encrypted
+  case that needs the password, passed to `load_case` / `set_password` and held
+  **only in RAM**. `CaseHandle.preview_file` returns a size-capped
+  (`PREVIEW_MAX_BYTES` = 5 MB) classified view (`image` / `plist` / `text` /
+  `binary` / `unavailable`); `extract_file(id, dest)` writes one file out.
 - `api.py` analysis bridge: `choose_pineapple_file` / `choose_case_folder`
   (native dialogs), `analysis_peek`, `start_analysis` / `read_analysis_progress`
   / `cancel_analysis` drive one `AnalysisRun` (and load the case on `done`),
-  `open_case` loads an existing folder, and `analysis_summary` / `analysis_apps`
-  / `analysis_domains` / `analysis_files` / `analysis_messages` / `analysis_calls`
-  / `analysis_contacts` answer from the open `CaseHandle` in an
-  `{"ok": …, "result": …}` envelope.
+  `open_case(dir, password="")` loads an existing folder, `analysis_unlock`
+  supplies the key for an already-open encrypted case, and `analysis_summary`
+  / `analysis_apps` / `analysis_domains` / `analysis_files` / `analysis_messages`
+  / `analysis_calls` / `analysis_contacts` / `analysis_notes`
+  / `analysis_safari_history` / `analysis_safari_bookmarks`
+  / `analysis_whatsapp_chats` / `analysis_whatsapp_messages` / `analysis_preview_file`
+  answer from the open `CaseHandle` in an `{"ok": …, "result": …}` envelope;
+  `analysis_extract_file` opens a native Save dialog. The decryption key is kept
+  (in RAM) across `start_analysis` / `open_case` so a finished encrypted case can
+  read its own backup files.
 - `app.py`: resolves `FRONTEND_DIST` relative to the repo root; `--dev` loads
   `http://localhost:4200`, otherwise serves the production build with pywebview's
   built-in HTTP server. Exits with a clear message if the build is missing.
@@ -196,11 +215,19 @@ buttons, emoji, purple, glassmorphism).
   polls `read_analysis_progress()` every 500ms and, on `done`, calls `open_case`
   so the tab flips to the browser; `summary()` non-null is what the `Analysis`
   component switches on (launcher vs browser). The browser is a nav-rail
-  (`Overview`, `Apps`, `Files`, `Messages`, `Calls`, `Contacts`). `ArtifactTable`
-  is a generic `mat-table` + `mat-paginator` that owns its fetch loop; the
-  service's query wrappers unwrap the `{ok, result}` envelope and throw on
-  `{ok:false}`. Re-opening a case is manual (the launcher's "Open existing
-  analysis"); nothing is persisted locally. Idle no-op without the bridge.
+  (`Overview`, `Apps`, `Files`, `Messages`, `Calls`, `Contacts`, `Notes`,
+  `Safari`, `WhatsApp`). `ArtifactTable` is a generic `mat-table` +
+  `mat-paginator` that owns its fetch loop; when given `detailFields` a row click
+  opens the shared `RecordDetailDialog` (every field, full text, a copy button
+  per field; `detail-fields.ts` has the `field()` / `localTime()` / `duration()`
+  helpers). `FilesSection` additionally passes `resolvePreview` (→
+  `analysis_preview_file`) and an `onExtract` action, and shows an unlock banner
+  (password → `analysis_unlock`) for an encrypted case whose key was not retained.
+  `SafariSection` toggles History / Bookmarks; `WhatsappSection` scopes the
+  message table by a chosen chat. The service's query wrappers unwrap the
+  `{ok, result}` envelope and throw on `{ok:false}`. Re-opening a case is manual
+  (the launcher's "Open existing analysis"); nothing is persisted locally. Idle
+  no-op without the bridge.
 
 ## Git workflow
 
