@@ -10,8 +10,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from pineapple.analysis.errors import ArtifactUnreadable
-from pineapple.analysis.parsers._common import mac_absolute_to_iso, open_source
+from pineapple.analysis.parsers._common import mac_absolute_to_iso, read_source
 from pineapple.analysis.parsers.attributed_body import decode_attributed_body
 
 _QUERY = """
@@ -33,14 +32,9 @@ LEFT JOIN handle h ON h.ROWID = m.handle_id
 
 
 def parse_messages(source_db: Path, conn: sqlite3.Connection) -> int:
-    try:
-        source = open_source(source_db)
-        try:
-            rows = source.execute(_QUERY).fetchall()
-        finally:
-            source.close()
-    except sqlite3.Error as error:
-        raise ArtifactUnreadable(f"sms.db: {error}") from error
+    """Load ``sms.db`` into the ``messages`` table; return the row count."""
+    with read_source(source_db, "sms.db") as source:
+        rows = source.execute(_QUERY).fetchall()
 
     def body(row: sqlite3.Row) -> str | None:
         if row["text"] is not None:

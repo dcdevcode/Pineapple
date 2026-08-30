@@ -8,6 +8,7 @@ from pineapple.analysis.metadata import BackupMetadata
 
 
 def index_backup_info(metadata: BackupMetadata, conn: sqlite3.Connection) -> None:
+    """Write the single ``backup_info`` row from the parsed backup metadata."""
     conn.execute(
         "INSERT INTO backup_info"
         "(device_name, product_type, product_name, product_version, build_version, "
@@ -29,6 +30,7 @@ def index_backup_info(metadata: BackupMetadata, conn: sqlite3.Connection) -> Non
 
 
 def index_apps(metadata: BackupMetadata, conn: sqlite3.Connection) -> int:
+    """Write the installed-app list into ``apps``; return the app count."""
     conn.executemany(
         "INSERT OR REPLACE INTO apps(bundle_id, name, version) VALUES (?, ?, ?)",
         [(app.bundle_id, app.name, app.version) for app in metadata.apps],

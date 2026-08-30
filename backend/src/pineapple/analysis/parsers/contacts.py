@@ -10,30 +10,24 @@ import sqlite3
 from collections import defaultdict
 from pathlib import Path
 
-from pineapple.analysis.errors import ArtifactUnreadable
-from pineapple.analysis.parsers._common import as_text, open_source
+from pineapple.analysis.parsers._common import as_text, read_source
 
 _PHONE_PROPERTY = 3
 _EMAIL_PROPERTY = 4
 
 
 def parse_contacts(source_db: Path, conn: sqlite3.Connection) -> int:
-    try:
-        source = open_source(source_db)
-        try:
-            people = source.execute(
-                "SELECT ROWID AS rowid, First AS first, Last AS last, "
-                "Organization AS organization FROM ABPerson"
-            ).fetchall()
-            multivalues = source.execute(
-                "SELECT record_id, property, value FROM ABMultiValue "
-                "WHERE property IN (?, ?)",
-                (_PHONE_PROPERTY, _EMAIL_PROPERTY),
-            ).fetchall()
-        finally:
-            source.close()
-    except sqlite3.Error as error:
-        raise ArtifactUnreadable(f"AddressBook.sqlitedb: {error}") from error
+    """Load ``AddressBook.sqlitedb`` into the ``contacts`` table; return the count."""
+    with read_source(source_db, "AddressBook.sqlitedb") as source:
+        people = source.execute(
+            "SELECT ROWID AS rowid, First AS first, Last AS last, "
+            "Organization AS organization FROM ABPerson"
+        ).fetchall()
+        multivalues = source.execute(
+            "SELECT record_id, property, value FROM ABMultiValue "
+            "WHERE property IN (?, ?)",
+            (_PHONE_PROPERTY, _EMAIL_PROPERTY),
+        ).fetchall()
 
     phones: dict[int, list[str]] = defaultdict(list)
     emails: dict[int, list[str]] = defaultdict(list)

@@ -8,8 +8,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from pineapple.analysis.errors import ArtifactUnreadable
-from pineapple.analysis.parsers._common import as_text, mac_absolute_to_iso, open_source
+from pineapple.analysis.parsers._common import as_text, mac_absolute_to_iso, read_source
 
 _QUERY = """
 SELECT
@@ -36,14 +35,9 @@ def _service(provider: object) -> str:
 
 
 def parse_calls(source_db: Path, conn: sqlite3.Connection) -> int:
-    try:
-        source = open_source(source_db)
-        try:
-            rows = source.execute(_QUERY).fetchall()
-        finally:
-            source.close()
-    except sqlite3.Error as error:
-        raise ArtifactUnreadable(f"CallHistory.storedata: {error}") from error
+    """Load ``CallHistory.storedata`` into the ``calls`` table; return the count."""
+    with read_source(source_db, "CallHistory.storedata") as source:
+        rows = source.execute(_QUERY).fetchall()
 
     conn.executemany(
         "INSERT OR REPLACE INTO calls"

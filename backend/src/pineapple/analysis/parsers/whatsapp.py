@@ -12,11 +12,10 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from pineapple.analysis.errors import ArtifactUnreadable
 from pineapple.analysis.parsers._common import (
     as_text,
     mac_absolute_to_iso,
-    open_source,
+    read_source,
 )
 
 _MEDIA_TYPES = {
@@ -53,15 +52,11 @@ def _media_type(value: object) -> str:
 
 
 def parse_whatsapp(source_db: Path, conn: sqlite3.Connection) -> int:
-    try:
-        source = open_source(source_db)
-        try:
-            chats = source.execute(_CHATS_QUERY).fetchall()
-            messages = source.execute(_MESSAGES_QUERY).fetchall()
-        finally:
-            source.close()
-    except sqlite3.Error as error:
-        raise ArtifactUnreadable(f"ChatStorage.sqlite: {error}") from error
+    """Fill both ``whatsapp_*`` tables from ``ChatStorage.sqlite``; return the
+    message count."""
+    with read_source(source_db, "ChatStorage.sqlite") as source:
+        chats = source.execute(_CHATS_QUERY).fetchall()
+        messages = source.execute(_MESSAGES_QUERY).fetchall()
 
     conn.executemany(
         "INSERT INTO whatsapp_chats(jid, name, last_message_utc, message_count) "

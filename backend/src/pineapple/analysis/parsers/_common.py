@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+from pineapple.analysis.errors import ArtifactUnreadable
 
 # Cocoa / Mac "absolute time": seconds since 2001-01-01 UTC. iOS 11+ stores some
 # of these columns in nanoseconds instead, hence the magnitude check below.
@@ -52,3 +56,21 @@ def open_source(path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+@contextmanager
+def read_source(path: Path, label: str) -> Iterator[sqlite3.Connection]:
+    """Open a source database read-only for the duration of the block.
+
+    Any :class:`sqlite3.Error` raised while opening or querying is turned into
+    an :class:`ArtifactUnreadable` tagged with ``label`` (a damaged or
+    unexpected schema is recorded as skipped, not fatal).
+    """
+    try:
+        conn = open_source(path)
+        try:
+            yield conn
+        finally:
+            conn.close()
+    except sqlite3.Error as error:
+        raise ArtifactUnreadable(f"{label}: {error}") from error

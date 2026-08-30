@@ -13,8 +13,7 @@ import gzip
 import sqlite3
 from pathlib import Path
 
-from pineapple.analysis.errors import ArtifactUnreadable
-from pineapple.analysis.parsers._common import as_text, mac_absolute_to_iso, open_source
+from pineapple.analysis.parsers._common import as_text, mac_absolute_to_iso, read_source
 
 _LEN_WIRE_TYPE = 2
 _NOTE_TEXT_PATH = (2, 3, 2)
@@ -79,14 +78,9 @@ def _body(blob: object) -> str | None:
 
 
 def parse_notes(source_db: Path, conn: sqlite3.Connection) -> int:
-    try:
-        source = open_source(source_db)
-        try:
-            rows = source.execute(_QUERY).fetchall()
-        finally:
-            source.close()
-    except sqlite3.Error as error:
-        raise ArtifactUnreadable(f"NoteStore.sqlite: {error}") from error
+    """Load ``NoteStore.sqlite`` into the ``notes`` table; return the row count."""
+    with read_source(source_db, "NoteStore.sqlite") as source:
+        rows = source.execute(_QUERY).fetchall()
 
     conn.executemany(
         "INSERT OR REPLACE INTO notes"

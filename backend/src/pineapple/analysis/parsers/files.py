@@ -11,6 +11,9 @@ _DIR_FLAG = 2
 
 
 def index_files(manifest: sqlite3.Connection, conn: sqlite3.Connection) -> int:
+    """Copy every ``Manifest.db`` ``Files`` row into ``files``, decoding the
+    ``MBFile`` blob for size / timestamps / mode / symlink target. Returns the
+    row count."""
     rows = manifest.execute(
         "SELECT fileID, domain, relativePath, flags, file FROM Files"
     ).fetchall()
