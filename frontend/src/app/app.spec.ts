@@ -9,6 +9,10 @@ describe('App', () => {
     }).compileComponents();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
     expect(fixture.componentInstance).toBeTruthy();
@@ -24,7 +28,7 @@ describe('App', () => {
   });
 
   it('should start watching for devices on creation', () => {
-    const start = vi.spyOn(DeviceService.prototype, 'start').mockImplementation(() => {});
+    const start = vi.spyOn(DeviceService.prototype, 'start').mockImplementation(() => undefined);
     TestBed.createComponent(App);
     expect(start).toHaveBeenCalledOnce();
   });

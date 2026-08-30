@@ -12,12 +12,17 @@
       <nav class="analysis__nav">
         <mat-nav-list>
           @for (section of sections; track section.id) {
-            <a mat-list-item [activated]="active() === section.id" (click)="active.set(section.id)">
+            <button
+              type="button"
+              mat-list-item
+              [activated]="active() === section.id"
+              (click)="active.set(section.id)"
+            >
               <span class="analysis__nav-label">{{ section.label }}</span>
               @if (count(section.id) !== null) {
                 <span class="analysis__count">{{ count(section.id) }}</span>
               }
-            </a>
+            </button>
           }
         </mat-nav-list>
       </nav>
