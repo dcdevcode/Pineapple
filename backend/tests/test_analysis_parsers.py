@@ -15,6 +15,7 @@ from analysis_support import (
     file_id,
 )
 from pineapple.analysis.errors import ArtifactUnreadable
+from pineapple.analysis.parsers.calendar import parse_calendar
 from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
@@ -165,6 +166,25 @@ def test_parse_photos_reads_assets_and_albums(
     assert albums[0]["kind"] == "user"
 
 
+def test_parse_calendar_joins_calendar_location_and_invitees(
+    conn: sqlite3.Connection, backup: Path
+) -> None:
+    written = parse_calendar(
+        _source(backup, "HomeDomain", "Library/Calendar/Calendar.sqlitedb"), conn
+    )
+
+    assert written == 2
+    rows = conn.execute("SELECT * FROM calendar_events ORDER BY rowid").fetchall()
+    assert rows[0]["title"] == "Standup"
+    assert rows[0]["calendar"] == "Work"
+    assert rows[0]["location"] == "Room 4"
+    assert rows[0]["all_day"] == 0
+    assert rows[0]["start_utc"].startswith("2023-")
+    assert rows[0]["invitees"] == "Ada; grace@example.com"
+    assert rows[1]["all_day"] == 1
+    assert rows[1]["invitees"] is None
+
+
 def test_parse_calls_maps_direction_and_service(
     conn: sqlite3.Connection, backup: Path
 ) -> None:
@@ -207,6 +227,7 @@ def test_parse_contacts_flattens_multivalues(
         parse_messages,
         parse_notes,
         parse_photos,
+        parse_calendar,
         parse_calls,
         parse_contacts,
         parse_safari_history,

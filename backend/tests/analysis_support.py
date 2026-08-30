@@ -249,6 +249,31 @@ INSERT INTO ZGENERICALBUM VALUES (2, NULL, 2, 0, NULL, NULL);
     )
 
 
+def _calendar(path: Path) -> None:
+    _script(
+        path,
+        """
+CREATE TABLE Calendar (ROWID INTEGER PRIMARY KEY, title TEXT);
+CREATE TABLE Location (ROWID INTEGER PRIMARY KEY, title TEXT);
+CREATE TABLE CalendarItem (
+    ROWID INTEGER PRIMARY KEY, summary TEXT, calendar_id INTEGER,
+    location_id INTEGER, description TEXT, start_date REAL, end_date REAL,
+    all_day INTEGER
+);
+CREATE TABLE Participant (
+    ROWID INTEGER PRIMARY KEY, owner_id INTEGER, email TEXT, name TEXT
+);
+INSERT INTO Calendar VALUES (1, 'Work');
+INSERT INTO Location VALUES (1, 'Room 4');
+INSERT INTO CalendarItem VALUES
+    (1, 'Standup', 1, 1, 'Daily sync', 700000000.0, 700001800.0, 0),
+    (2, 'Holiday', 1, NULL, NULL, 700100000.0, 700186400.0, 1);
+INSERT INTO Participant VALUES (1, 1, 'ada@example.com', 'Ada');
+INSERT INTO Participant VALUES (2, 1, 'grace@example.com', NULL);
+        """,
+    )
+
+
 def _address_book(path: Path) -> None:
     _script(
         path,
@@ -284,6 +309,7 @@ _SOURCES = (
     _SourceDb("HomeDomain", "Library/AddressBook/AddressBook.sqlitedb", _address_book),
     _SourceDb("AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite", _note_store),
     _SourceDb("CameraRollDomain", "Media/PhotoData/Photos.sqlite", _photos),
+    _SourceDb("HomeDomain", "Library/Calendar/Calendar.sqlitedb", _calendar),
     _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
     _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
     _SourceDb(

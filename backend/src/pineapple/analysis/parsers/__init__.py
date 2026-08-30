@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pineapple.analysis.parsers.apps import index_apps, index_backup_info
+from pineapple.analysis.parsers.calendar import parse_calendar
 from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.files import index_files
@@ -81,6 +82,13 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         "Media/PhotoData/Photos.sqlite",
         "CameraRollDomain",
         parse_photos,
+    ),
+    ParserSpec(
+        "calendar",
+        "Library/Calendar/Calendar.sqlitedb",
+        "HomeDomain",
+        parse_calendar,
+        count_key="calendar_events",
     ),
     ParserSpec(
         "safari_history",

@@ -273,6 +273,7 @@ read-only via `_common.read_source(path, label)` (which maps `sqlite3.Error`
 | `contacts` | `…/AddressBook/AddressBook.sqlitedb` | names + `ABMultiValue` phones/emails |
 | `notes` | `AppDomainGroup-group.com.apple.notes/NoteStore.sqlite` | body is gzip + protobuf (§8) |
 | `photos` | `CameraRollDomain/Media/PhotoData/Photos.sqlite` | Core Data; fills `photos` + `photo_albums`; each row keeps the asset's Manifest file id for preview |
+| `calendar` | `…/Library/Calendar/Calendar.sqlitedb` | `CalendarItem` + `Calendar` + `Location`; `Participant` rows joined into `invitees` (`count_key`) |
 | `safari_history` | `…/Safari/History.db` | **`encrypted_only`** |
 | `safari_bookmarks` | `…/Safari/Bookmarks.db` | self-referential table, `type` 1 = bookmark |
 | `whatsapp` | `AppDomainGroup-group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite` | fills `whatsapp_chats` + `whatsapp_messages` (`count_key`) |

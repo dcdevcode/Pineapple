@@ -405,6 +405,25 @@ class CaseHandle:
             offset,
         )
 
+    def calendar_events(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """One page of calendar events, most recent start first; ``search``
+        matches the title, location or notes."""
+        where, params = self._search_where(search, "title", "location", "notes")
+        return self._page_query(
+            "SELECT rowid, calendar, title, location, notes, start_utc, end_utc, "
+            f"all_day, invitees FROM calendar_events {where} "
+            "ORDER BY start_utc DESC",
+            f"SELECT COUNT(*) FROM calendar_events {where}",
+            params,
+            limit,
+            offset,
+        )
+
     # -- backup file access -------------------------------------------------
 
     def files_unlocked(self) -> bool:
