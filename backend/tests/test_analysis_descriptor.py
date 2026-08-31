@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -13,7 +12,6 @@ from pineapple.analysis.descriptor import (
     find_descriptor,
     read_descriptor,
     safe_filename,
-    sha256_file,
     tool_version,
     write_descriptor,
 )
@@ -34,13 +32,6 @@ def test_safe_filename_strips_unsafe_chars_and_uses_the_fallback() -> None:
     assert safe_filename('a/b:c*?"<>|d') == "a_b_c______d"
     assert safe_filename("   ") == "analysis"
     assert safe_filename("", fallback="device") == "device"
-
-
-def test_sha256_file_matches_hashlib(tmp_path: Path) -> None:
-    target = tmp_path / "blob"
-    target.write_bytes(b"pineapple" * 1000)
-
-    assert sha256_file(target) == hashlib.sha256(target.read_bytes()).hexdigest()
 
 
 def test_tool_version_is_a_string() -> None:

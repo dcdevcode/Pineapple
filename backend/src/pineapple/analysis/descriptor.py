@@ -7,7 +7,6 @@ reopening a case folder.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -37,15 +36,6 @@ def safe_filename(title: str, fallback: str = "analysis") -> str:
         "_" if char in _UNSAFE_NAME_CHARS else char for char in title
     ).strip()
     return cleaned or fallback
-
-
-def sha256_file(path: Path) -> str:
-    """The SHA-256 hex digest of a file, read in 1 MiB chunks."""
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 @dataclass

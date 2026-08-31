@@ -26,7 +26,6 @@ from pineapple.analysis.descriptor import (
     CaseDescriptor,
     descriptor_path,
     find_descriptor,
-    sha256_file,
     write_descriptor,
 )
 from pineapple.analysis.errors import AnalysisError, ArtifactUnreadable
@@ -39,6 +38,7 @@ from pineapple.analysis.parsers import (
 )
 from pineapple.analysis.reader import BackupReader, open_reader
 from pineapple.analysis.schema import initialize
+from pineapple.hashing import sha256_file
 from pineapple.session import DeviceSession
 
 TEARDOWN_TIMEOUT = 10.0
