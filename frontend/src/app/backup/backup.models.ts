@@ -4,6 +4,7 @@ export type BackupPhase =
   | 'preparing'
   | 'backing_up'
   | 'packaging'
+  | 'hashing'
   | 'restoring_encryption'
   | 'done'
   | 'error'
@@ -21,6 +22,7 @@ export interface BackupProgress {
   phase: BackupPhase;
   percent: number;
   output_path: string | null;
+  sha256: string | null;
   error: string | null;
   note: string | null;
   running: boolean;
@@ -38,5 +40,6 @@ export const RUNNING_PHASES: readonly BackupPhase[] = [
   'preparing',
   'backing_up',
   'packaging',
+  'hashing',
   'restoring_encryption',
 ];

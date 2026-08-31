@@ -12,6 +12,7 @@ const IDLE: BackupProgress = {
   phase: 'idle',
   percent: 0,
   output_path: null,
+  sha256: null,
   error: null,
   note: null,
   running: false,
@@ -130,6 +131,8 @@ export function phaseLabel(phase: BackupPhase): string {
       return 'Backing up the device…';
     case 'packaging':
       return 'Packaging the .pineapple archive…';
+    case 'hashing':
+      return 'Computing the checksum…';
     case 'restoring_encryption':
       return 'Restoring the device settings…';
     case 'done':

@@ -70,6 +70,53 @@
   overflow-wrap: anywhere;
 }
 
+.backup__hash {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.backup__hash-label {
+  font: var(--mat-sys-label-small);
+  color: var(--app-text-muted);
+}
+
+.backup__hash-value {
+  flex: 1 1 12ch;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+// A light, quiet affordance — not a full Material button (see UI.md).
+.backup__copy {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+}
+
+.backup__copy:hover,
+.backup__copy:focus-visible {
+  background: var(--mat-sys-surface-container-high);
+  color: var(--app-text);
+}
+
+.backup__copy-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
 .backup__actions {
   display: flex;
   justify-content: flex-end;

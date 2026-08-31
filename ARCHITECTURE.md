@@ -169,9 +169,15 @@ reopening the viewer would silently fail. `stop()` therefore blocks (via
 `DeviceBackup.start()` runs a full **MobileBackup2** backup on `session` into
 a temp staging dir, then packs `staging/<udid>/` into the chosen path as an
 **uncompressed** (`ZIP_STORED`) zip named `*.pineapple`. Phases:
-`preparing` → `backing_up` → `packaging` → (`restoring_encryption`) → `done`
-/ `error` / `cancelled`, with `percent` fed by MobileBackup2's progress
-callback.
+`preparing` → `backing_up` → `packaging` → `hashing` →
+(`restoring_encryption`) → `done` / `error` / `cancelled`, with `percent` fed
+by MobileBackup2's progress callback.
+
+The `hashing` phase computes the SHA-256 of the finished archive
+(`pineapple.hashing.sha256_file`, off the loop via `asyncio.to_thread`, its
+`cancelled` event checked between 1 MiB chunks); `progress()` carries it as
+`sha256` on `done` so the frontend can show it for chain-of-custody. A cancel
+during hashing rolls the archive back like any other phase.
 
 ### Encryption is a *device* setting
 

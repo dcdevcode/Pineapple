@@ -47,6 +47,7 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
 | `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
 | `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
+| `backend/src/pineapple/hashing.py` | `sha256_file` (1 MiB-chunk digest, optional cancellation) — shared by `backup` and `analysis`. |
 | `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `mbfile` (decode a `Manifest.db` `Files.file` blob), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`), `schema` (v4), `errors`, `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / photos / calendar / voicemail / accounts / device usage / safari / whatsapp / file index → `analysis.db`; `_common.read_source` wraps the DB open), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup` / `analysis`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
@@ -155,10 +156,11 @@ buttons, emoji, purple, glassmorphism).
   operation (enable / backup / restore) opens its **own** `Mobilebackup2Service`
   context: the `com.apple.mobilebackup2` session is single-use (one DeviceLink
   operation, then `DLMessageDisconnect`), so reusing one instance runs the
-  second operation on a dead session. `progress()` reports `phase` (`preparing` /
-  `backing_up` / `packaging` / `restoring_encryption` / `done` / `error` /
-  `cancelled`), `percent`, `note`, `output_path`. Same "Trust this computer"
-  requirement as `get_device_info`.
+  second operation on a dead session. After packaging, the `hashing` phase runs
+  `pineapple.hashing.sha256_file` over the archive. `progress()` reports `phase`
+  (`preparing` / `backing_up` / `packaging` / `hashing` / `restoring_encryption`
+  / `done` / `error` / `cancelled`), `percent`, `note`, `output_path`, `sha256`
+  (set on `done`). Same "Trust this computer" requirement as `get_device_info`.
 - `analysis/`: offline analysis of a saved `.pineapple` image (no device needed).
   `archive.peek()` reads the three root plists straight from the zip (never
   encrypted) for the device facts shown before parsing; `archive.extract()`

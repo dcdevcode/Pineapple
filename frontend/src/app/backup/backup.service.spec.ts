@@ -14,6 +14,7 @@ function progress(overrides: Partial<BackupProgress> = {}): BackupProgress {
     phase: 'backing_up',
     percent: 0,
     output_path: null,
+    sha256: null,
     error: null,
     note: null,
     running: true,
@@ -115,6 +116,7 @@ describe('BackupService', () => {
 
   it('labels each phase', () => {
     expect(phaseLabel('backing_up')).toContain('Backing up');
+    expect(phaseLabel('hashing')).toContain('checksum');
     expect(phaseLabel('done')).toContain('complete');
     expect(phaseLabel('idle')).toBe('');
   });

@@ -10,6 +10,7 @@ const IDLE: BackupProgress = {
   phase: 'idle',
   percent: 0,
   output_path: null,
+  sha256: null,
   error: null,
   note: null,
   running: false,
@@ -149,6 +150,33 @@ describe('BackupDialog', () => {
 
     expect(component.step()).toBe('result');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('/tmp/x.pineapple');
+  });
+
+  it('shows the SHA-256 on the result step and copies it', async () => {
+    const digest = 'a'.repeat(64);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+
+    const fixture = await render();
+    const component = fixture.componentInstance;
+    component.step.set('progress');
+
+    progress.set({
+      ...IDLE,
+      phase: 'done',
+      output_path: '/tmp/x.pineapple',
+      sha256: digest,
+    });
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.backup__hash-value')?.textContent).toContain(digest);
+
+    await component.copyHash();
+    expect(writeText).toHaveBeenCalledWith(digest);
+    expect(component.copied()).toBe(true);
+
+    vi.unstubAllGlobals();
   });
 
   it('blocks closing the dialog while the acquisition is running', async () => {

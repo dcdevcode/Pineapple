@@ -3,9 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { BackupService, phaseLabel } from './backup.service';
 import { RUNNING_PHASES, type BackupPhase } from './backup.models';
 
@@ -30,9 +32,11 @@ const TERMINAL_PHASES: readonly BackupPhase[] = ['done', 'error', 'cancelled'];
     FormsModule,
     MatButtonModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatProgressBarModule,
     MatRadioModule,
+    MatTooltipModule,
   ],
   templateUrl: './backup-dialog.html',
   styleUrl: './backup-dialog.scss',
@@ -75,6 +79,9 @@ export class BackupDialog {
   readonly phaseText = computed(() => phaseLabel(this.progress().phase));
   readonly isRunning = computed(() => RUNNING_PHASES.includes(this.progress().phase));
   readonly percentText = computed(() => `${Math.round(this.progress().percent)}%`);
+
+  /** Shows the "Copied" tooltip for a moment after copying the checksum. */
+  readonly copied = signal(false);
 
   constructor() {
     void this.loadPreflight();
@@ -129,6 +136,18 @@ export class BackupDialog {
 
   cancelRun(): void {
     void this.backup.cancel();
+  }
+
+  async copyHash(): Promise<void> {
+    const digest = this.progress().sha256;
+    if (!digest) return;
+    try {
+      await navigator.clipboard.writeText(digest);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 1500);
+    } catch {
+      this.copied.set(false);
+    }
   }
 
   close(): void {

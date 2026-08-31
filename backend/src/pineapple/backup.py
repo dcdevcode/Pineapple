@@ -26,6 +26,7 @@ from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.mobilebackup2 import Mobilebackup2Service
 
 from pineapple import devices
+from pineapple.hashing import HashingCancelled, sha256_file
 from pineapple.session import DeviceSession
 
 PINEAPPLE_SUFFIX = ".pineapple"
@@ -87,6 +88,7 @@ class _Progress:
     phase: str = "idle"
     percent: float = 0.0
     output_path: str | None = None
+    sha256: str | None = None
     error: str | None = None
     note: str | None = None
     running: bool = False
@@ -204,6 +206,11 @@ class DeviceBackup:
                 _zip_stored, staging / udid, output_path, self._cancelled
             )
 
+            self._set(phase="hashing", note="Computing the archive checksum (SHA-256).")
+            digest = await asyncio.to_thread(
+                sha256_file, output_path, cancelled=self._cancelled
+            )
+
             note = None
             if self._we_enabled_encryption:
                 await self._restore_encryption(lockdown, password)
@@ -212,11 +219,12 @@ class DeviceBackup:
                 phase="done",
                 percent=100.0,
                 output_path=str(output_path),
+                sha256=digest,
                 error=None,
                 note=note,
                 running=False,
             )
-        except (asyncio.CancelledError, _PackagingCancelled) as exc:
+        except (asyncio.CancelledError, _PackagingCancelled, HashingCancelled) as exc:
             await asyncio.shield(
                 self._unwind(lockdown, password, output_path, "cancelled")
             )

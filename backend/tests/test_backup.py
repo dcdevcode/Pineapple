@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import time
 import zipfile
 from pathlib import Path
@@ -86,6 +87,8 @@ def test_unencrypted_backup_writes_a_stored_pineapple_archive(
     archive = tmp_path / "image.pineapple"
     assert state["output_path"] == str(archive)
     assert archive.exists()
+
+    assert state["sha256"] == hashlib.sha256(archive.read_bytes()).hexdigest()
 
     with zipfile.ZipFile(archive) as zf:
         names = zf.namelist()

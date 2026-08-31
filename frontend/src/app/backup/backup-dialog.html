@@ -134,6 +134,23 @@
           <p class="backup__text">
             Saved to <code>{{ progress().output_path }}</code>
           </p>
+          @if (progress().sha256) {
+            <div class="backup__hash">
+              <span class="backup__hash-label">SHA-256</span>
+              <code class="backup__hash-value">{{ progress().sha256 }}</code>
+              <button
+                class="backup__copy"
+                type="button"
+                aria-label="Copy the SHA-256 checksum"
+                [matTooltip]="copied() ? 'Copied' : 'Copy'"
+                (click)="copyHash()"
+              >
+                <mat-icon class="backup__copy-icon" aria-hidden="true">{{
+                  copied() ? 'check' : 'content_copy'
+                }}</mat-icon>
+              </button>
+            </div>
+          }
         }
         @if (progress().error) {
           <p class="backup__error">{{ progress().error }}</p>
