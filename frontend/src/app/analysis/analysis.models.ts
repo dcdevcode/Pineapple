@@ -207,6 +207,47 @@ export interface PhotoAlbumRow {
   end_utc: string | null;
 }
 
+export interface CalendarEventRow {
+  rowid: number;
+  calendar: string | null;
+  title: string | null;
+  location: string | null;
+  notes: string | null;
+  start_utc: string | null;
+  end_utc: string | null;
+  all_day: number;
+  invitees: string | null;
+}
+
+export interface VoicemailRow {
+  rowid: number;
+  sender: string | null;
+  received_utc: string | null;
+  duration_seconds: number;
+  trashed: number;
+  transcript: string | null;
+}
+
+export interface DeviceUsageRow {
+  rowid: number;
+  stream: string | null;
+  bundle_id: string | null;
+  value: string | null;
+  start_utc: string | null;
+  end_utc: string | null;
+  duration_seconds: number;
+}
+
+export interface AccountRow {
+  rowid: number;
+  type: string | null;
+  identifier: string | null;
+  description: string | null;
+  username: string | null;
+  added_utc: string | null;
+  credential_type: string | null;
+}
+
 export interface DomainCount {
   domain: string;
   count: number;

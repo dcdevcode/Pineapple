@@ -47,6 +47,10 @@ describe('Analysis', () => {
       notes: vi.fn().mockResolvedValue(emptyPage),
       photos: vi.fn().mockResolvedValue(emptyPage),
       photoAlbums: vi.fn().mockResolvedValue(emptyPage),
+      calendar: vi.fn().mockResolvedValue(emptyPage),
+      voicemail: vi.fn().mockResolvedValue(emptyPage),
+      deviceUsage: vi.fn().mockResolvedValue(emptyPage),
+      accounts: vi.fn().mockResolvedValue(emptyPage),
       safariHistory: vi.fn().mockResolvedValue(emptyPage),
       safariBookmarks: vi.fn().mockResolvedValue(emptyPage),
       whatsappChats: vi.fn().mockResolvedValue(emptyPage),
@@ -117,7 +121,18 @@ describe('Analysis', () => {
     const labels = Array.from(el.querySelectorAll('.analysis__nav-label')).map((n) =>
       n.textContent?.trim(),
     );
-    expect(labels).toEqual(expect.arrayContaining(['Notes', 'Photos', 'Safari', 'WhatsApp']));
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        'Notes',
+        'Photos',
+        'Calendar',
+        'Voicemail',
+        'Usage',
+        'Accounts',
+        'Safari',
+        'WhatsApp',
+      ]),
+    );
 
     fixture.componentInstance['active'].set('whatsapp');
     await fixture.whenStable();
@@ -126,6 +141,14 @@ describe('Analysis', () => {
     fixture.componentInstance['active'].set('photos');
     await fixture.whenStable();
     expect(el.querySelector('app-photos-section')).toBeTruthy();
+
+    fixture.componentInstance['active'].set('calendar');
+    await fixture.whenStable();
+    expect(el.querySelector('app-calendar-section')).toBeTruthy();
+
+    fixture.componentInstance['active'].set('accounts');
+    await fixture.whenStable();
+    expect(el.querySelector('app-accounts-section')).toBeTruthy();
   });
 
   it('returns to the launcher on "Close analysis"', async () => {

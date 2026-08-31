@@ -5,11 +5,15 @@ import { MatListModule } from '@angular/material/list';
 import { AnalysisService } from './analysis.service';
 import { AnalysisDialog } from './analysis-dialog';
 import { ArtifactTable, type ColumnDef, type FetchPage, type TableRow } from './artifact-table';
+import { AccountsSection } from './sections/accounts-section';
+import { CalendarSection } from './sections/calendar-section';
 import { FilesSection } from './sections/files-section';
 import { NotesSection } from './sections/notes-section';
 import { Overview } from './sections/overview';
 import { PhotosSection } from './sections/photos-section';
 import { SafariSection } from './sections/safari-section';
+import { UsageSection } from './sections/usage-section';
+import { VoicemailSection } from './sections/voicemail-section';
 import { WhatsappSection } from './sections/whatsapp-section';
 import { deviceLine, duration, field, localTime, type DetailBuilder } from './detail-fields';
 import type { Page, PageQuery } from './analysis.models';
@@ -23,6 +27,10 @@ type SectionId =
   | 'contacts'
   | 'notes'
   | 'photos'
+  | 'calendar'
+  | 'voicemail'
+  | 'usage'
+  | 'accounts'
   | 'safari'
   | 'whatsapp';
 
@@ -38,11 +46,15 @@ interface Section {
     MatButtonModule,
     MatListModule,
     ArtifactTable,
+    AccountsSection,
+    CalendarSection,
     FilesSection,
     NotesSection,
     Overview,
     PhotosSection,
     SafariSection,
+    UsageSection,
+    VoicemailSection,
     WhatsappSection,
   ],
   templateUrl: './analysis.html',
@@ -66,6 +78,10 @@ export class Analysis {
     { id: 'contacts', label: 'Contacts' },
     { id: 'notes', label: 'Notes' },
     { id: 'photos', label: 'Photos' },
+    { id: 'calendar', label: 'Calendar' },
+    { id: 'voicemail', label: 'Voicemail' },
+    { id: 'usage', label: 'Usage' },
+    { id: 'accounts', label: 'Accounts' },
     { id: 'safari', label: 'Safari' },
     { id: 'whatsapp', label: 'WhatsApp' },
   ];
@@ -80,6 +96,10 @@ export class Analysis {
     contacts: ['contacts'],
     notes: ['notes'],
     photos: ['photos'],
+    calendar: ['calendar_events'],
+    voicemail: ['voicemail'],
+    usage: ['device_usage'],
+    accounts: ['accounts'],
     safari: ['safari_history', 'safari_bookmarks'],
     whatsapp: ['whatsapp_messages'],
   };

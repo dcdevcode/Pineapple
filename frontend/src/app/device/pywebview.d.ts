@@ -2,11 +2,14 @@ import type { DevicePresence, DeviceInfoResult } from './device.models';
 import type { SyslogActionResult, SyslogReadResult } from '../syslog/syslog.models';
 import type { BackupActionResult, BackupPreflight, BackupProgress } from '../backup/backup.models';
 import type {
+  AccountRow,
   AnalysisProgress,
   AppRow,
+  CalendarEventRow,
   CallRow,
   CaseSummary,
   ContactRow,
+  DeviceUsageRow,
   DomainCount,
   ExtractResult,
   FilePreview,
@@ -23,6 +26,7 @@ import type {
   SafariBookmarkRow,
   SafariHistoryRow,
   StartResult,
+  VoicemailRow,
   WhatsappChatRow,
   WhatsappMessageRow,
 } from '../analysis/analysis.models';
@@ -107,6 +111,26 @@ export interface PineappleApi {
     offset: number,
   ): Promise<QueryResult<Page<PhotoRow>>>;
   analysis_photo_albums(limit: number, offset: number): Promise<QueryResult<Page<PhotoAlbumRow>>>;
+  analysis_calendar(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<CalendarEventRow>>>;
+  analysis_voicemail(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<VoicemailRow>>>;
+  analysis_device_usage(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<DeviceUsageRow>>>;
+  analysis_accounts(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<AccountRow>>>;
   analysis_preview_file(fileId: string): Promise<QueryResult<FilePreview>>;
   analysis_extract_file(fileId: string): Promise<ExtractResult | { ok: false }>;
 }

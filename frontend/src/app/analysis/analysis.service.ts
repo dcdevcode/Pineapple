@@ -1,11 +1,14 @@
 import { Injectable, signal } from '@angular/core';
 import type {
+  AccountRow,
   AnalysisPhase,
   AnalysisProgress,
   AppRow,
+  CalendarEventRow,
   CallRow,
   CaseSummary,
   ContactRow,
+  DeviceUsageRow,
   DomainCount,
   ExtractResult,
   FilePreview,
@@ -22,6 +25,7 @@ import type {
   SafariBookmarkRow,
   SafariHistoryRow,
   StartResult,
+  VoicemailRow,
   WhatsappChatRow,
   WhatsappMessageRow,
 } from './analysis.models';
@@ -224,6 +228,22 @@ export class AnalysisService {
 
   photoAlbums(q: PageQuery): Promise<Page<PhotoAlbumRow>> {
     return this.query((api) => api.analysis_photo_albums(q.limit, q.offset));
+  }
+
+  calendar(q: PageQuery): Promise<Page<CalendarEventRow>> {
+    return this.query((api) => api.analysis_calendar(q.search ?? null, q.limit, q.offset));
+  }
+
+  voicemail(q: PageQuery): Promise<Page<VoicemailRow>> {
+    return this.query((api) => api.analysis_voicemail(q.search ?? null, q.limit, q.offset));
+  }
+
+  deviceUsage(q: PageQuery): Promise<Page<DeviceUsageRow>> {
+    return this.query((api) => api.analysis_device_usage(q.search ?? null, q.limit, q.offset));
+  }
+
+  accounts(q: PageQuery): Promise<Page<AccountRow>> {
+    return this.query((api) => api.analysis_accounts(q.search ?? null, q.limit, q.offset));
   }
 
   safariHistory(q: PageQuery): Promise<Page<SafariHistoryRow>> {
