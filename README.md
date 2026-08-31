@@ -1,5 +1,7 @@
 # Pineapple
 
+![Pineapple](assets/banner.webp)
+
 An **iOS forensic analysis tool**: a desktop application that inspects an Apple
 device over USB, captures a full logical image of it, and analyses that image
 offline into a structured, queryable case.
@@ -41,7 +43,22 @@ Pineapple is **open source**, released under the **MIT License** — see
 
 ## Screenshots
 
-_To be added._
+![The Device tab waiting for a connected iPhone or iPad](assets/screenshot1.png)
+
+*The **Device** tab — usbmuxd-only presence detection; nothing is read until a
+device is connected and trusted.*
+
+![The acquisition dialog backing up a connected device](assets/screenshot2.png)
+
+*Capturing a logical image — a full MobileBackup2 backup packaged as one
+`.pineapple` file, with per-phase progress. (Device identity fields blanked for
+the screenshot.)*
+
+![The analysis case browser inspecting a photo artifact](assets/screenshot3.png)
+
+*The **Analysis** case browser — a parsed case with the artifact nav-rail, and a
+record detail view showing one photo's metadata plus an in-app preview.
+(Example case; identifying data blanked.)*
 
 ---
 
