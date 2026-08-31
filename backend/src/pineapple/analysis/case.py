@@ -478,6 +478,27 @@ class CaseHandle:
             offset,
         )
 
+    def keychain(
+        self,
+        search: str | None = None,
+        limit: int = DEFAULT_PAGE,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """One page of keychain items, by service then account; ``search``
+        matches the account, service, server or access group."""
+        where, params = self._search_where(
+            search, "account", "service", "server", "access_group"
+        )
+        return self._page_query(
+            "SELECT rowid, item_class, account, service, server, access_group, "
+            "protection_class, created_utc, modified_utc, secret, secret_error "
+            f"FROM keychain {where} ORDER BY service, account",
+            f"SELECT COUNT(*) FROM keychain {where}",
+            params,
+            limit,
+            offset,
+        )
+
     # -- backup file access -------------------------------------------------
 
     def files_unlocked(self) -> bool:

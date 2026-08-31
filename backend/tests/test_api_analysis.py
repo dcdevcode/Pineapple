@@ -116,6 +116,7 @@ def test_new_artifact_queries_answer_from_the_case(image: Path, tmp_path: Path) 
     assert api.analysis_voicemail()["result"]["total"] == 2
     assert api.analysis_accounts()["result"]["total"] == 1
     assert api.analysis_device_usage()["result"]["total"] == 3
+    assert api.analysis_keychain()["result"]["total"] == 2
     assert api.analysis_safari_history()["result"]["total"] == 2
     assert api.analysis_safari_bookmarks()["result"]["total"] == 1
     assert api.analysis_whatsapp_chats()["result"]["total"] == 1
@@ -171,6 +172,19 @@ def test_extract_file_dialog_cancelled(
     assert api.analysis_extract_file(file_id("HomeDomain", "Library/SMS/sms.db")) == {
         "ok": False
     }
+
+
+def test_keychain_secrets_decrypt_for_an_encrypted_case(tmp_path: Path) -> None:
+    root = build_backup(tmp_path / "src", encrypted=True)
+    image = make_pineapple(root, tmp_path / "image.pineapple")
+    api = Api()
+    _run_to_done(api, image, tmp_path / "case", password=FakeEncryptedBackup.PASSWORD)
+
+    result = api.analysis_keychain()["result"]
+    assert result["total"] == 2
+    secrets = {row["account"]: row["secret"] for row in result["rows"]}
+    assert secrets["wifi-home"] == "hunter2"
+    assert secrets["ada@example.com"] == "s3cr3t"
 
 
 def test_unlock_rejects_a_wrong_key_for_an_encrypted_case(

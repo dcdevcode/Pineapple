@@ -45,7 +45,7 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
 | `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
 | `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
-| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `mbfile` (decode a `Manifest.db` `Files.file` blob), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`), `schema` (v3), `errors`, `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / safari / whatsapp / file index → `analysis.db`; `_common.read_source` wraps the DB open), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
+| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `mbfile` (decode a `Manifest.db` `Files.file` blob), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`; `unwrap_keychain_key` for keychain), `schema` (v3), `errors`, `keychain` (decode `keychain-backup.plist`), `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / photos / calendar / voicemail / accounts / device usage / keychain / safari / whatsapp / file index → `analysis.db`; `_common.read_source` wraps the DB open), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup` / `analysis`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
@@ -186,10 +186,12 @@ buttons, emoji, purple, glassmorphism).
   `photo_albums`, each photo row keeping the asset's Manifest file id for preview,
   `calendar` = `Calendar.sqlitedb` → `calendar_events`, `voicemail` =
   `voicemail.db`, `accounts` = `Accounts3.sqlite`, `device_usage` =
-  a curated slice of `knowledgeC.db`)
+  a curated slice of `knowledgeC.db`, `keychain` = `keychain-backup.plist`
+  (binary plist, not SQLite; `needs_reader` to unwrap item keys via the backup
+  keybag; metadata always, secrets best-effort, decode in `analysis/keychain.py`))
   are tolerant: a missing or damaged source
-  DB is recorded as skipped, not fatal. `calls`, `safari_history` and
-  `device_usage` are
+  DB is recorded as skipped, not fatal. `calls`, `safari_history`,
+  `device_usage` and `keychain` are
   `encrypted_only` — iOS keeps those out of *unencrypted* backups, so their
   absence there is expected and the skip note says so. All timestamps ISO-8601
   UTC. Schema is **v3**; `load_case` rejects a mismatch (re-analyze older cases).

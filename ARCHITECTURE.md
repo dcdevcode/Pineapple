@@ -264,7 +264,9 @@ The runner iterates `ARTIFACT_PARSERS` in order. Each `ParserSpec` says where
 its source DB lives (`relative_path`, `domain`) and how to parse it. The
 reader extracts that one DB into `<case>/decrypted/`; the parser opens it
 read-only via `_common.read_source(path, label)` (which maps `sqlite3.Error`
-→ `ArtifactUnreadable`) and writes rows into `analysis.db`.
+→ `ArtifactUnreadable`) and writes rows into `analysis.db`. A parser with
+`needs_reader` is handed the `BackupReader` as a third argument (the keychain
+parser needs it to unwrap item keys).
 
 | Parser | Source | Notes |
 | --- | --- | --- |
@@ -277,6 +279,7 @@ read-only via `_common.read_source(path, label)` (which maps `sqlite3.Error`
 | `voicemail` | `…/Library/Voicemail/voicemail.db` | caller / duration / `trashed_date`; transcription column picked up when present |
 | `accounts` | `…/Library/Accounts/Accounts3.sqlite` | `ZACCOUNT` + `ZACCOUNTTYPE`; metadata only (secrets are in the keychain) |
 | `device_usage` | `AppDomainGroup-group.com.apple.coreduet/…/knowledgeC.db` | **`encrypted_only`**; a curated four-stream slice of CoreDuet, capped at 50k rows |
+| `keychain` | `KeychainDomain/keychain-backup.plist` | **`encrypted_only`**, `needs_reader`; a binary plist, not SQLite (§8). Metadata always lands; secrets decrypted through the backup keybag, best-effort |
 | `safari_history` | `…/Safari/History.db` | **`encrypted_only`** |
 | `safari_bookmarks` | `…/Safari/Bookmarks.db` | self-referential table, `type` 1 = bookmark |
 | `whatsapp` | `AppDomainGroup-group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite` | fills `whatsapp_chats` + `whatsapp_messages` (`count_key`) |
@@ -310,8 +313,15 @@ only open the DB.
   magnitude check picks the scale. Unix epoch columns go through
   `unix_to_iso`. **Every timestamp in `analysis.db` is an ISO-8601 UTC
   string**, so the frontend never does timezone maths.
-- **Core Data** stores (`calls`, `notes`, `whatsapp`) have `Z`-prefixed
-  tables and `Z_PK` primary keys.
+- **Core Data** stores (`calls`, `notes`, `whatsapp`, `photos`, `calendar`,
+  `accounts`, `device_usage`) have `Z`-prefixed tables and `Z_PK` primary keys.
+- **Keychain** (`analysis/keychain.py`): `keychain-backup.plist` groups items
+  under `genp` / `inet` / `cert` / `keys` with cleartext metadata and an
+  encrypted `v_Data` blob (`[version][class][wrapped key][GCM ciphertext+tag]`).
+  The reader's `unwrap_keychain_key` unwraps the per-item key via the backup
+  keybag; AES-GCM with a 16-byte zero IV (Apple's `SecAESGCM`) then yields the
+  secret. Best-effort: an item that will not decode keeps its metadata and a
+  `secret_error`. Format follows the `iphone-dataprotection` reference.
 
 ---
 

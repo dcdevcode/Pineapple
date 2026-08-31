@@ -66,6 +66,7 @@ def test_full_run_on_an_unencrypted_image(
     assert state["counts"]["voicemail"] == 2
     assert state["counts"]["accounts"] == 1
     assert state["counts"]["device_usage"] == 3
+    assert state["counts"]["keychain"] == 2
     assert state["counts"]["safari_history"] == 2
     assert state["counts"]["safari_bookmarks"] == 1
     assert state["counts"]["whatsapp_messages"] == 2
