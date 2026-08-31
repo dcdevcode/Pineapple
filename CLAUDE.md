@@ -202,7 +202,9 @@ buttons, emoji, purple, glassmorphism).
   (`PREVIEW_MAX_BYTES` = 5 MB) classified view (`image` / `plist` / `text` /
   `binary` / `unavailable`); `extract_file(id, dest)` writes one file out.
 - `api.py` analysis bridge: `choose_pineapple_file` / `choose_case_folder`
-  (native dialogs), `analysis_peek`, `start_analysis` / `read_analysis_progress`
+  (native dialogs), `analysis_peek` (a `.pineapple`) / `analysis_peek_case` (an
+  existing case folder — reads only the `<title>.json` descriptor, for the
+  "is it encrypted?" prompt), `start_analysis` / `read_analysis_progress`
   / `cancel_analysis` drive one `AnalysisRun` (and load the case on `done`),
   `open_case(dir, password="")` loads an existing folder, `analysis_unlock`
   supplies the key for an already-open encrypted case, and `analysis_summary`
@@ -250,8 +252,12 @@ buttons, emoji, purple, glassmorphism).
   opens the shared `RecordDetailDialog` (every field, full text, a compact copy
   icon per field; `detail-fields.ts` has the `field()` / `localTime()` /
   `duration()` helpers). `FilesSection` additionally passes `resolvePreview` (→
-  `analysis_preview_file`) and an `onExtract` action, and shows an unlock banner
-  (password → `analysis_unlock`) for an encrypted case whose key was not retained.
+  `analysis_preview_file`) and an `onExtract` action (null while the backup is
+  locked). The encrypted-key prompt is the shared `UnlockBanner` in the
+  case-browser shell (`analysis.html`): shown under the header on every section
+  while `is_encrypted && !files_unlocked`, self-hiding once `analysis_unlock`
+  succeeds; the key can also be entered up front in the "Open existing analysis"
+  flow (which peeks with `analysis_peek_case`, Skip allowed).
   `SafariSection` and `PhotosSection` are one table switched by a projected
   toggle (History / Bookmarks; Photos / Albums — a Photos row with a `file_id`
   resolves the real image via `analysis_preview_file`, shown in the detail

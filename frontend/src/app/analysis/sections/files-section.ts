@@ -1,8 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { ArtifactTable, type ColumnDef, type FetchPage } from '../artifact-table';
 import { AnalysisService } from '../analysis.service';
@@ -30,31 +28,22 @@ function fileKind(row: TableRow): string {
 
 /** The Files section: the file index, filterable by domain and path. A row opens
  *  its full metadata plus a content preview and an Extract action; for an
- *  encrypted backup those need the decryption key (the unlock banner). */
+ *  encrypted backup those need the decryption key (supplied via the shared
+ *  unlock banner in the case-browser shell). */
 @Component({
   selector: 'app-files-section',
-  imports: [
-    ArtifactTable,
-    FormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-  ],
+  imports: [ArtifactTable, FormsModule, MatFormFieldModule, MatSelectModule],
   templateUrl: './files-section.html',
   styleUrl: './files-section.scss',
 })
 export class FilesSection {
   private readonly analysis = inject(AnalysisService);
 
-  protected readonly summary = this.analysis.summary;
+  private readonly summary = this.analysis.summary;
   protected readonly domain = signal('');
   protected readonly domains = signal<DomainCount[]>([]);
-  protected readonly password = signal('');
-  protected readonly unlocking = signal(false);
-  protected readonly unlockError = signal<string | null>(null);
 
-  protected readonly locked = computed(
+  private readonly locked = computed(
     () => !!this.summary()?.is_encrypted && !this.summary()?.files_unlocked,
   );
 
@@ -97,18 +86,6 @@ export class FilesSection {
 
   constructor() {
     void this.loadDomains();
-  }
-
-  protected async unlock(): Promise<void> {
-    this.unlocking.set(true);
-    this.unlockError.set(null);
-    try {
-      const result = await this.analysis.unlock(this.password());
-      if (!result.ok) this.unlockError.set(result.error ?? 'Wrong key.');
-      else this.password.set('');
-    } finally {
-      this.unlocking.set(false);
-    }
   }
 
   private async loadDomains(): Promise<void> {

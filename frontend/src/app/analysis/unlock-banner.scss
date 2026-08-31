@@ -1,0 +1,24 @@
+.unlock-banner {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.unlock-banner__text {
+  margin: 0 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.unlock-banner__form {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.unlock-banner__error {
+  margin: 8px 0 0;
+  color: var(--mat-sys-error);
+  font: var(--mat-sys-body-small);
+}

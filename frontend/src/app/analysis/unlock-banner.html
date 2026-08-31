@@ -1,0 +1,28 @@
+@if (locked()) {
+  <div class="unlock-banner">
+    <p class="unlock-banner__text">
+      This backup is encrypted. Enter the backup password to preview images and extract files.
+    </p>
+    <form class="unlock-banner__form" (ngSubmit)="unlock()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Backup password</mat-label>
+        <input
+          matInput
+          [type]="showPassword() ? 'text' : 'password'"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+          name="password"
+        />
+        <button matButton matSuffix type="button" (click)="toggleShowPassword()">
+          {{ showPassword() ? 'Hide' : 'Show' }}
+        </button>
+      </mat-form-field>
+      <button matButton="filled" type="submit" [disabled]="unlocking() || !password()">
+        Unlock
+      </button>
+    </form>
+    @if (unlockError()) {
+      <p class="unlock-banner__error">{{ unlockError() }}</p>
+    }
+  </div>
+}

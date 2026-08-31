@@ -26,11 +26,15 @@ describe('Analysis', () => {
   const dialog = { open: vi.fn() };
   let chooseCaseFolder: ReturnType<typeof vi.fn>;
   let openCase: ReturnType<typeof vi.fn>;
+  let peekCase: ReturnType<typeof vi.fn>;
+  let unlock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     summary.set(null);
     dialog.open.mockClear();
     chooseCaseFolder = vi.fn().mockResolvedValue({ ok: true, path: '/cases/x' });
+    peekCase = vi.fn().mockResolvedValue({ ok: true, encrypted: false, title: 'F17ABC123' });
+    unlock = vi.fn().mockResolvedValue({ ok: true });
     openCase = vi.fn().mockImplementation(async () => {
       summary.set(SUMMARY);
       return { ok: true };
@@ -41,6 +45,8 @@ describe('Analysis', () => {
       summary: summary.asReadonly(),
       chooseCaseFolder,
       openCase,
+      peekCase,
+      unlock,
       closeCase: () => summary.set(null),
       domains: vi.fn().mockResolvedValue([]),
       apps: vi.fn().mockResolvedValue([]),
@@ -90,14 +96,55 @@ describe('Analysis', () => {
     expect(dialog.open).toHaveBeenCalledOnce();
   });
 
-  it('opens an existing case folder', async () => {
+  it('opens an unencrypted existing case folder straight away', async () => {
     const fixture = await render();
     await fixture.componentInstance.openExisting();
     await fixture.whenStable();
 
     expect(chooseCaseFolder).toHaveBeenCalled();
-    expect(openCase).toHaveBeenCalledWith('/cases/x');
+    expect(peekCase).toHaveBeenCalledWith('/cases/x');
+    expect(openCase).toHaveBeenCalledWith('/cases/x', '');
     expect((fixture.nativeElement as HTMLElement).querySelector('.analysis--browser')).toBeTruthy();
+  });
+
+  it('asks for the password when opening an encrypted existing case', async () => {
+    peekCase.mockResolvedValueOnce({ ok: true, encrypted: true, title: 'F17ABC123' });
+    const fixture = await render();
+    await fixture.componentInstance.openExisting();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Encrypted case');
+    expect(openCase).not.toHaveBeenCalled();
+
+    fixture.componentInstance['openPassword'].set('hunter2');
+    await fixture.componentInstance.confirmOpen(true);
+    expect(openCase).toHaveBeenCalledWith('/cases/x', 'hunter2');
+  });
+
+  it('lets you skip the password and open the encrypted case locked', async () => {
+    peekCase.mockResolvedValueOnce({ ok: true, encrypted: true, title: 'F17ABC123' });
+    const fixture = await render();
+    await fixture.componentInstance.openExisting();
+    await fixture.componentInstance.confirmOpen(false);
+
+    expect(openCase).toHaveBeenCalledWith('/cases/x', '');
+  });
+
+  it('shows the shared unlock banner for a locked encrypted case', async () => {
+    summary.set({
+      ...SUMMARY,
+      is_encrypted: true,
+      files_unlocked: false,
+    });
+    const fixture = await render();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.unlock-banner')).toBeTruthy();
+    fixture.componentInstance['active'].set('photos');
+    await fixture.whenStable();
+    // still there on another section
+    expect(el.querySelector('.unlock-banner')).toBeTruthy();
   });
 
   it('renders the browser and switches sections when a case is open', async () => {

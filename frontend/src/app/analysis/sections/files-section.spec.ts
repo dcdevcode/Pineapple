@@ -41,7 +41,6 @@ function filePage(rows: Partial<FileRow>[]): Page<FileRow> {
 describe('FilesSection', () => {
   let files: ReturnType<typeof vi.fn>;
   let domains: ReturnType<typeof vi.fn>;
-  let unlock: ReturnType<typeof vi.fn>;
   const summary = signal<CaseSummary | null>(summaryOf());
 
   beforeEach(async () => {
@@ -51,7 +50,6 @@ describe('FilesSection', () => {
       { domain: 'HomeDomain', count: 4 },
       { domain: 'AppDomain-com.x', count: 2 },
     ]);
-    unlock = vi.fn().mockResolvedValue({ ok: true });
 
     await TestBed.configureTestingModule({
       imports: [FilesSection],
@@ -62,7 +60,6 @@ describe('FilesSection', () => {
           useValue: {
             files,
             domains,
-            unlock,
             summary: summary.asReadonly(),
             previewFile: vi.fn().mockResolvedValue(null),
             extractFile: vi.fn().mockResolvedValue({ ok: true, path: '/tmp/x' }),
@@ -97,19 +94,7 @@ describe('FilesSection', () => {
     expect(files).toHaveBeenLastCalledWith(expect.objectContaining({ domain: 'AppDomain-com.x' }));
   });
 
-  it('shows the unlock banner for a locked encrypted case and calls unlock', async () => {
-    summary.set(summaryOf({ is_encrypted: true, files_unlocked: false }));
-    const fixture = await render();
-    const el = fixture.nativeElement as HTMLElement;
-
-    expect(el.querySelector('.files__unlock')).toBeTruthy();
-    fixture.componentInstance['password'].set('hunter2');
-    await fixture.componentInstance['unlock']();
-
-    expect(unlock).toHaveBeenCalledWith('hunter2');
-  });
-
-  it('does not expose the Extract action while locked', async () => {
+  it('does not expose the Extract action while the backup is locked', async () => {
     summary.set(summaryOf({ is_encrypted: true, files_unlocked: false }));
     const fixture = await render();
     expect(fixture.componentInstance['onExtract']()).toBeNull();

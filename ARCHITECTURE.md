@@ -392,6 +392,14 @@ superseded run bails out, an `IDLE` constant, and an **idle no-op when
 / Messages / Calls / Contacts / Notes / Photos / Calendar / Voicemail / Usage
 / Accounts / Safari / WhatsApp). `AnalysisDialog` is the pick → configure →
 progress wizard; on `done` the service calls `open_case` and the tab flips.
+"Open existing analysis" first calls `analysis_peek_case` (reads only the
+`<title>.json` descriptor) and, when the case is encrypted, asks for the
+backup password in the launcher before opening (Skip is allowed).
+
+While an open case is encrypted and its key is not held, a shared
+`UnlockBanner` sits under the browser header on **every** section — the one
+place to supply the key (`analysis_unlock`); it self-hides once the summary
+comes back `files_unlocked`.
 
 `ArtifactTable` is a generic `mat-table` + `mat-paginator` that **owns its own
 fetch loop** — it re-runs the injected `fetchPage` whenever the page,
@@ -401,9 +409,9 @@ A row click opens `RecordDetailDialog` (every field, full text, a copy icon
 per field; Files rows add a content preview + Extract). The four simple
 tables (apps / messages / calls / contacts) are configured inline in
 `analysis.ts`; the rest have their own section components — Files / Safari /
-WhatsApp / Photos carry extra controls (domain filter, unlock banner,
-history↔bookmarks and photos↔albums toggles, chat scope, image preview), and
-Notes / Calendar / Voicemail / Usage / Accounts are plain searchable tables.
+WhatsApp / Photos carry extra controls (domain filter, history↔bookmarks and
+photos↔albums toggles, chat scope, image preview), and Notes / Calendar /
+Voicemail / Usage / Accounts are plain searchable tables.
 
 ### `pywebview.d.ts`
 

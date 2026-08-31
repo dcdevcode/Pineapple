@@ -1,6 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { AnalysisService } from './analysis.service';
 import { AnalysisDialog } from './analysis-dialog';
@@ -15,6 +18,7 @@ import { SafariSection } from './sections/safari-section';
 import { UsageSection } from './sections/usage-section';
 import { VoicemailSection } from './sections/voicemail-section';
 import { WhatsappSection } from './sections/whatsapp-section';
+import { UnlockBanner } from './unlock-banner';
 import { deviceLine, duration, field, localTime, type DetailBuilder } from './detail-fields';
 import type { Page, PageQuery } from './analysis.models';
 
@@ -43,7 +47,10 @@ interface Section {
 @Component({
   selector: 'app-analysis',
   imports: [
+    FormsModule,
     MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatListModule,
     ArtifactTable,
     AccountsSection,
@@ -56,6 +63,7 @@ interface Section {
     UsageSection,
     VoicemailSection,
     WhatsappSection,
+    UnlockBanner,
   ],
   templateUrl: './analysis.html',
   styleUrl: './analysis.scss',
@@ -68,6 +76,10 @@ export class Analysis {
   protected readonly active = signal<SectionId>('overview');
   protected readonly launcherError = signal<string | null>(null);
   protected readonly busy = signal(false);
+
+  /** Set while "Open existing" is waiting for the password of an encrypted case. */
+  protected readonly pendingCase = signal<{ dir: string; title: string } | null>(null);
+  protected readonly openPassword = signal('');
 
   protected readonly sections: readonly Section[] = [
     { id: 'overview', label: 'Overview' },
@@ -217,17 +229,56 @@ export class Analysis {
     try {
       const picked = await this.analysis.chooseCaseFolder();
       if (!picked.ok) return;
-      const opened = await this.analysis.openCase(picked.path);
-      if (!opened.ok) this.launcherError.set(opened.error ?? 'Could not open that folder.');
-      else this.active.set('overview');
+
+      const peek = await this.analysis.peekCase(picked.path);
+      if (!peek.ok) {
+        this.launcherError.set(peek.error);
+        return;
+      }
+      if (peek.encrypted) {
+        this.openPassword.set('');
+        this.pendingCase.set({ dir: picked.path, title: peek.title });
+        return;
+      }
+      await this.finishOpen(picked.path, '');
     } finally {
       this.busy.set(false);
     }
   }
 
+  /** Open the pending encrypted case, with the typed key or (skip) without it. */
+  async confirmOpen(withKey: boolean): Promise<void> {
+    const pending = this.pendingCase();
+    if (!pending) return;
+    this.busy.set(true);
+    try {
+      await this.finishOpen(pending.dir, withKey ? this.openPassword() : '');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  cancelOpen(): void {
+    this.pendingCase.set(null);
+    this.openPassword.set('');
+    this.launcherError.set(null);
+  }
+
+  private async finishOpen(dir: string, password: string): Promise<void> {
+    const opened = await this.analysis.openCase(dir, password);
+    if (!opened.ok) {
+      this.launcherError.set(opened.error ?? 'Could not open that folder.');
+      return;
+    }
+    this.pendingCase.set(null);
+    this.openPassword.set('');
+    this.active.set('overview');
+  }
+
   close(): void {
     this.analysis.closeCase();
     this.active.set('overview');
+    this.cancelOpen();
   }
 
   private slice(rows: TableRow[], q: PageQuery): Page<TableRow> {

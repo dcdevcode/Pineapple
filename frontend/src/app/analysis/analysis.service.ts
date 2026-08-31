@@ -18,6 +18,7 @@ import type {
   Page,
   PageQuery,
   PathResult,
+  PeekCaseResult,
   PeekResult,
   PhotoAlbumRow,
   PhotoRow,
@@ -93,6 +94,17 @@ export class AnalysisService {
     if (!api) return { ok: false, error: NO_BRIDGE };
     try {
       return await api.analysis_peek(pineapplePath);
+    } catch (error) {
+      return { ok: false, error: String(error) };
+    }
+  }
+
+  /** Whether an existing case folder is an encrypted backup, before opening it. */
+  async peekCase(caseDir: string): Promise<PeekCaseResult> {
+    const api = window.pywebview?.api;
+    if (!api) return { ok: false, error: NO_BRIDGE };
+    try {
+      return await api.analysis_peek_case(caseDir);
     } catch (error) {
       return { ok: false, error: String(error) };
     }

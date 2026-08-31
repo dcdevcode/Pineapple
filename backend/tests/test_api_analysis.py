@@ -79,6 +79,27 @@ def test_analysis_peek_wraps_a_bad_file(tmp_path: Path) -> None:
     assert Api().analysis_peek(str(junk))["ok"] is False
 
 
+def test_analysis_peek_case_reports_encryption(image: Path, tmp_path: Path) -> None:
+    api = Api()
+    _run_to_done(api, image, tmp_path / "plain")
+    plain = api.analysis_peek_case(str(tmp_path / "plain"))
+    assert plain == {"ok": True, "encrypted": False, "title": SERIAL}
+
+    enc_image = make_pineapple(
+        build_backup(tmp_path / "enc-src", encrypted=True), tmp_path / "enc.pineapple"
+    )
+    _run_to_done(
+        Api(), enc_image, tmp_path / "enc", password=FakeEncryptedBackup.PASSWORD
+    )
+    assert api.analysis_peek_case(str(tmp_path / "enc"))["encrypted"] is True
+
+
+def test_analysis_peek_case_rejects_a_folder_without_a_descriptor(
+    tmp_path: Path,
+) -> None:
+    assert Api().analysis_peek_case(str(tmp_path))["ok"] is False
+
+
 def test_start_read_and_open_flow(image: Path, tmp_path: Path) -> None:
     api = Api()
     case_dir = tmp_path / "case"

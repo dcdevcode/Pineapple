@@ -44,7 +44,7 @@ Defined on `html` in `styles.scss`; use these, not raw hex:
 | Token | Value | Use |
 | --- | --- | --- |
 | `--app-bg` | `#ffffff` | window background, inset blocks |
-| `--app-surface` | `#f4f4f3` | the app-header strip, dialog surfaces, callout panels (e.g. the Files unlock banner) |
+| `--app-surface` | `#f4f4f3` | the app-header strip, dialog surfaces, callout panels (e.g. the case-browser unlock banner) |
 | `--app-border` | `rgba(0,0,0,0.12)` | hairline dividers and outlines |
 | `--app-text` | `rgba(0,0,0,0.87)` | primary text |
 | `--app-text-muted` | `rgba(0,0,0,0.6)` | secondary text, metadata, counts |
@@ -163,6 +163,17 @@ values in a scrollable monospace block), each with a **quiet** copy affordance
 check + "Copied" tooltip for 1.5 s. Files rows also get a classified content
 preview (image / plist-as-JSON / text / "binary — no preview" / unavailable)
 and an "Extract file…" action with inline status.
+
+### `UnlockBanner`
+
+The encrypted-backup key prompt (`analysis/unlock-banner.ts`). A full-width
+`--app-surface` strip with a `--app-border` bottom rule, flush under the
+case-browser header, so it reads as part of the shell rather than a section.
+Self-hiding: it renders nothing unless the open case `is_encrypted` **and**
+`!files_unlocked`, and disappears the instant the key is accepted (the summary
+refreshes). One password field (Show/Hide) + an Unlock button; a wrong key
+shows an inline `--mat-sys-error` line. The same key can also be entered up
+front in the "Open existing analysis" launcher flow (with a Skip option).
 
 ### Wizard dialogs (`BackupDialog`, `AnalysisDialog`)
 

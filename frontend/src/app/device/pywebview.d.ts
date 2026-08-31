@@ -19,6 +19,7 @@ import type {
   OpenCaseResult,
   Page,
   PathResult,
+  PeekCaseResult,
   PeekResult,
   PhotoAlbumRow,
   PhotoRow,
@@ -48,6 +49,7 @@ export interface PineappleApi {
   choose_pineapple_file(): Promise<PathResult>;
   choose_case_folder(): Promise<PathResult>;
   analysis_peek(pineapplePath: string): Promise<PeekResult>;
+  analysis_peek_case(caseDir: string): Promise<PeekCaseResult>;
   start_analysis(
     pineapplePath: string,
     caseDir: string,

@@ -8,6 +8,8 @@
       <button matButton type="button" (click)="close()">Close analysis</button>
     </header>
 
+    <app-unlock-banner />
+
     <div class="analysis__body">
       <nav class="analysis__nav">
         <mat-nav-list>
@@ -100,18 +102,49 @@
 } @else {
   <div class="analysis analysis--launcher">
     <div class="analysis__launcher-card">
-      <h2 class="analysis__title">Analysis</h2>
-      <p class="analysis__lead">
-        Open a <code>.pineapple</code> image to inspect a device's data offline.
-      </p>
-      <div class="analysis__actions">
-        <button matButton="filled" type="button" [disabled]="busy()" (click)="newAnalysis()">
-          New analysis
-        </button>
-        <button matButton type="button" [disabled]="busy()" (click)="openExisting()">
-          Open existing analysis
-        </button>
-      </div>
+      @if (pendingCase(); as pc) {
+        <h2 class="analysis__title">Encrypted case</h2>
+        <p class="analysis__lead">
+          <strong>{{ pc.title }}</strong> is an encrypted backup. Enter the password to preview
+          images and extract files — or skip and unlock later.
+        </p>
+        <form class="analysis__open-form" (ngSubmit)="confirmOpen(true)">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Backup password</mat-label>
+            <input
+              matInput
+              type="password"
+              name="password"
+              [ngModel]="openPassword()"
+              (ngModelChange)="openPassword.set($event)"
+            />
+          </mat-form-field>
+          <div class="analysis__actions">
+            <button matButton="filled" type="submit" [disabled]="busy() || !openPassword()">
+              Open
+            </button>
+            <button matButton type="button" [disabled]="busy()" (click)="confirmOpen(false)">
+              Skip
+            </button>
+            <button matButton type="button" [disabled]="busy()" (click)="cancelOpen()">
+              Cancel
+            </button>
+          </div>
+        </form>
+      } @else {
+        <h2 class="analysis__title">Analysis</h2>
+        <p class="analysis__lead">
+          Open a <code>.pineapple</code> image to inspect a device's data offline.
+        </p>
+        <div class="analysis__actions">
+          <button matButton="filled" type="button" [disabled]="busy()" (click)="newAnalysis()">
+            New analysis
+          </button>
+          <button matButton type="button" [disabled]="busy()" (click)="openExisting()">
+            Open existing analysis
+          </button>
+        </div>
+      }
       @if (launcherError()) {
         <p class="analysis__error">{{ launcherError() }}</p>
       }

@@ -19,7 +19,11 @@ import webview
 from pineapple import backup, devices
 from pineapple.analysis import archive as analysis_archive
 from pineapple.analysis.case import CaseHandle, load_case
-from pineapple.analysis.descriptor import safe_filename
+from pineapple.analysis.descriptor import (
+    find_descriptor,
+    read_descriptor,
+    safe_filename,
+)
 from pineapple.analysis.runner import AnalysisRun
 from pineapple.backup import DeviceBackup
 from pineapple.session import session
@@ -194,6 +198,28 @@ class Api:
             "encrypted": metadata.is_encrypted,
             "device": metadata.device_dict(),
             "default_title": metadata.default_title,
+        }
+
+    def analysis_peek_case(self, case_dir: str) -> dict[str, Any]:
+        """Whether an existing case folder is an encrypted backup, before opening.
+
+        Reads only the ``<title>.json`` descriptor (no DB, no reader), so the
+        launcher can decide whether to ask for a password.
+
+        ``{"ok": True, "encrypted": bool, "title": str}`` or
+        ``{"ok": False, "error": ...}``.
+        """
+        try:
+            found = find_descriptor(Path(case_dir))
+            if found is None:
+                return {"ok": False, "error": "No case descriptor in that folder."}
+            descriptor = read_descriptor(found)
+        except Exception as error:
+            return {"ok": False, "error": str(error)}
+        return {
+            "ok": True,
+            "encrypted": bool(descriptor.source.get("is_encrypted")),
+            "title": descriptor.title,
         }
 
     def start_analysis(

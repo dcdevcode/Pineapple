@@ -279,6 +279,10 @@ export type PeekResult =
   | { ok: true; encrypted: boolean; device: DeviceFacts; default_title: string }
   | { ok: false; error: string };
 
+/** Result of `analysis_peek_case` — is an existing case folder encrypted? */
+export type PeekCaseResult =
+  { ok: true; encrypted: boolean; title: string } | { ok: false; error: string };
+
 /** Result of `start_analysis`. */
 export type StartResult = { ok: true } | { ok: false; error: string };
 

@@ -10,31 +10,6 @@
   width: 260px;
 }
 
-.files__unlock {
-  padding: 12px 16px;
-  border: 1px solid var(--app-border);
-  border-radius: 4px;
-  background: var(--app-surface);
-}
-
-.files__unlock-text {
-  margin: 0 0 8px;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-medium);
-}
-
-.files__unlock-form {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.files__unlock-error {
-  margin: 8px 0 0;
-  color: var(--mat-sys-error);
-  font: var(--mat-sys-body-small);
-}
-
 .files__table {
   flex: 1;
   min-height: 0;
