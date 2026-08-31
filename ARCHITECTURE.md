@@ -273,7 +273,7 @@ read-only via `_common.read_source(path, label)` (which maps `sqlite3.Error`
 | `contacts` | `…/AddressBook/AddressBook.sqlitedb` | names + `ABMultiValue` phones/emails |
 | `notes` | `AppDomainGroup-group.com.apple.notes/NoteStore.sqlite` | body is gzip + protobuf (§8) |
 | `photos` | `CameraRollDomain/Media/PhotoData/Photos.sqlite` | Core Data; fills `photos` + `photo_albums`; each row keeps the asset's Manifest `file_id` (looked up in `files`) so the browser can preview the real image |
-| `calendar` | `…/Library/Calendar/Calendar.sqlitedb` | `CalendarItem` + `Calendar` + `Location`; `Participant` rows joined into `invitees` (`count_key`) |
+| `calendar` | `…/Library/Calendar/Calendar.sqlitedb` | `CalendarItem` + `Calendar` + `Location`; `invitees` from `Participant` (+ `Identity`) — that schema drifts between iOS releases, so it is introspected and best-effort. `count_key` |
 | `voicemail` | `…/Library/Voicemail/voicemail.db` | caller / duration / `trashed_date`; transcription column picked up when present |
 | `accounts` | `…/Library/Accounts/Accounts3.sqlite` | `ZACCOUNT` + `ZACCOUNTTYPE`; metadata only (no stored credentials) |
 | `device_usage` | `AppDomainGroup-group.com.apple.coreduet/…/knowledgeC.db` | **`encrypted_only`**; a curated four-stream slice of CoreDuet, capped at 50k rows |

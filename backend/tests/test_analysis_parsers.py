@@ -201,6 +201,40 @@ def test_parse_calendar_joins_calendar_location_and_invitees(
     assert rows[1]["invitees"] is None
 
 
+def test_parse_calendar_tolerates_a_participant_table_without_names(
+    conn: sqlite3.Connection, tmp_path: Path
+) -> None:
+    # A real-world schema variant: Participant carries neither `name` nor
+    # `email` (the old query blew up here with "no such column: name").
+    source = tmp_path / "Calendar.sqlitedb"
+    seed = sqlite3.connect(source)
+    seed.executescript(
+        """
+CREATE TABLE Calendar (ROWID INTEGER PRIMARY KEY, title TEXT);
+CREATE TABLE Location (ROWID INTEGER PRIMARY KEY, title TEXT);
+CREATE TABLE CalendarItem (
+    ROWID INTEGER PRIMARY KEY, summary TEXT, calendar_id INTEGER,
+    location_id INTEGER, description TEXT, start_date REAL, end_date REAL,
+    all_day INTEGER
+);
+CREATE TABLE Participant (ROWID INTEGER PRIMARY KEY, owner_id INTEGER, status INTEGER);
+INSERT INTO Calendar VALUES (1, 'Home');
+INSERT INTO CalendarItem (ROWID, summary, calendar_id, start_date, end_date, all_day)
+    VALUES (1, 'Dentist', 1, 700000000.0, 700003600.0, 0);
+INSERT INTO Participant VALUES (1, 1, 1);
+        """
+    )
+    seed.commit()
+    seed.close()
+
+    written = parse_calendar(source, conn)
+
+    assert written == 1
+    row = conn.execute("SELECT * FROM calendar_events").fetchone()
+    assert row["title"] == "Dentist"
+    assert row["invitees"] is None
+
+
 def test_parse_voicemail_reads_caller_duration_and_trashed(
     conn: sqlite3.Connection, backup: Path
 ) -> None:

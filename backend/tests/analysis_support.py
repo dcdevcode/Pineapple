@@ -268,16 +268,22 @@ CREATE TABLE CalendarItem (
     location_id INTEGER, description TEXT, start_date REAL, end_date REAL,
     all_day INTEGER
 );
+-- Modern iOS: the participant's name lives on Identity, not Participant.
+CREATE TABLE Identity (
+    ROWID INTEGER PRIMARY KEY, display_name TEXT, address TEXT
+);
 CREATE TABLE Participant (
-    ROWID INTEGER PRIMARY KEY, owner_id INTEGER, email TEXT, name TEXT
+    ROWID INTEGER PRIMARY KEY, owner_id INTEGER, email TEXT, identity_id INTEGER
 );
 INSERT INTO Calendar VALUES (1, 'Work');
 INSERT INTO Location VALUES (1, 'Room 4');
 INSERT INTO CalendarItem VALUES
     (1, 'Standup', 1, 1, 'Daily sync', 700000000.0, 700001800.0, 0),
     (2, 'Holiday', 1, NULL, NULL, 700100000.0, 700186400.0, 1);
-INSERT INTO Participant VALUES (1, 1, 'ada@example.com', 'Ada');
-INSERT INTO Participant VALUES (2, 1, 'grace@example.com', NULL);
+INSERT INTO Identity VALUES (1, 'Ada', 'mailto:ada@example.com');
+INSERT INTO Identity VALUES (2, NULL, 'mailto:grace@example.com');
+INSERT INTO Participant VALUES (1, 1, NULL, 1);
+INSERT INTO Participant VALUES (2, 1, 'grace@example.com', 2);
         """,
     )
 
