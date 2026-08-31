@@ -56,7 +56,7 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
 | `frontend/src/app/about/` | About tab: the `Brand` lockup (`size="large"`), the author line, and a `Thanks` list crediting the core libraries (`pymobiledevice3`, `iphone_backup_decrypt`, `python-typedstream`, `pywebview`). Static — no bridge. |
-| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control beside Search. Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
+| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Photos` / `Calendar` / `Voicemail` / `Usage` / `Accounts` / `Keychain` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control beside Search. Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
 | `frontend/src/styles.scss` | Global Angular Material theme — a single fixed **light** scheme (no theme switch), a goldenrod-amber accent, a nod to the pineapple. |
 | `frontend/eslint.config.js` | `angular-eslint` + `typescript-eslint` flat config (`pnpm lint`). |
 | `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / lint / test / build) on every push and PR. |
@@ -241,6 +241,7 @@ buttons, emoji, purple, glassmorphism).
   so the tab flips to the browser; `summary()` non-null is what the `Analysis`
   component switches on (launcher vs browser). The browser is a nav-rail
   (`Overview`, `Apps`, `Files`, `Messages`, `Calls`, `Contacts`, `Notes`,
+  `Photos`, `Calendar`, `Voicemail`, `Usage`, `Accounts`, `Keychain`,
   `Safari`, `WhatsApp`). `ArtifactTable` is a generic `mat-table` +
   `mat-paginator` that owns its fetch loop; a searchable one renders a toolbar
   row where a section can project a filter control with the `[tableFilter]`
@@ -250,8 +251,12 @@ buttons, emoji, purple, glassmorphism).
   `duration()` helpers). `FilesSection` additionally passes `resolvePreview` (→
   `analysis_preview_file`) and an `onExtract` action, and shows an unlock banner
   (password → `analysis_unlock`) for an encrypted case whose key was not retained.
-  `SafariSection` is one table switched between History / Bookmarks by a
-  projected toggle; `WhatsappSection` scopes the message table by a chosen chat. The service's query wrappers unwrap the
+  `SafariSection` and `PhotosSection` are one table switched by a projected
+  toggle (History / Bookmarks; Photos / Albums — Photos rows resolve a
+  thumbnail); `WhatsappSection` scopes the message table by a chosen chat;
+  `KeychainSection` reuses the Files unlock banner (the key is what decrypts
+  secrets). `Calendar` / `Voicemail` / `Usage` / `Accounts` are plain searchable
+  tables. The service's query wrappers unwrap the
   `{ok, result}` envelope and throw on `{ok:false}`. Re-opening a case is manual
   (the launcher's "Open existing analysis"); nothing is persisted locally. Idle
   no-op without the bridge.

@@ -45,6 +45,8 @@ describe('Analysis', () => {
       domains: vi.fn().mockResolvedValue([]),
       apps: vi.fn().mockResolvedValue([]),
       notes: vi.fn().mockResolvedValue(emptyPage),
+      photos: vi.fn().mockResolvedValue(emptyPage),
+      photoAlbums: vi.fn().mockResolvedValue(emptyPage),
       safariHistory: vi.fn().mockResolvedValue(emptyPage),
       safariBookmarks: vi.fn().mockResolvedValue(emptyPage),
       whatsappChats: vi.fn().mockResolvedValue(emptyPage),
@@ -115,11 +117,15 @@ describe('Analysis', () => {
     const labels = Array.from(el.querySelectorAll('.analysis__nav-label')).map((n) =>
       n.textContent?.trim(),
     );
-    expect(labels).toEqual(expect.arrayContaining(['Notes', 'Safari', 'WhatsApp']));
+    expect(labels).toEqual(expect.arrayContaining(['Notes', 'Photos', 'Safari', 'WhatsApp']));
 
     fixture.componentInstance['active'].set('whatsapp');
     await fixture.whenStable();
     expect(el.querySelector('app-whatsapp-section')).toBeTruthy();
+
+    fixture.componentInstance['active'].set('photos');
+    await fixture.whenStable();
+    expect(el.querySelector('app-photos-section')).toBeTruthy();
   });
 
   it('returns to the launcher on "Close analysis"', async () => {

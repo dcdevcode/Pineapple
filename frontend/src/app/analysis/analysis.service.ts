@@ -16,6 +16,8 @@ import type {
   PageQuery,
   PathResult,
   PeekResult,
+  PhotoAlbumRow,
+  PhotoRow,
   QueryResult,
   SafariBookmarkRow,
   SafariHistoryRow,
@@ -214,6 +216,14 @@ export class AnalysisService {
 
   notes(q: PageQuery): Promise<Page<NoteRow>> {
     return this.query((api) => api.analysis_notes(q.search ?? null, q.limit, q.offset));
+  }
+
+  photos(q: PageQuery): Promise<Page<PhotoRow>> {
+    return this.query((api) => api.analysis_photos(q.search ?? null, q.limit, q.offset));
+  }
+
+  photoAlbums(q: PageQuery): Promise<Page<PhotoAlbumRow>> {
+    return this.query((api) => api.analysis_photo_albums(q.limit, q.offset));
   }
 
   safariHistory(q: PageQuery): Promise<Page<SafariHistoryRow>> {

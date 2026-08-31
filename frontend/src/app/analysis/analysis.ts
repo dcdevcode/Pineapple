@@ -8,6 +8,7 @@ import { ArtifactTable, type ColumnDef, type FetchPage, type TableRow } from './
 import { FilesSection } from './sections/files-section';
 import { NotesSection } from './sections/notes-section';
 import { Overview } from './sections/overview';
+import { PhotosSection } from './sections/photos-section';
 import { SafariSection } from './sections/safari-section';
 import { WhatsappSection } from './sections/whatsapp-section';
 import { deviceLine, duration, field, localTime, type DetailBuilder } from './detail-fields';
@@ -21,6 +22,7 @@ type SectionId =
   | 'calls'
   | 'contacts'
   | 'notes'
+  | 'photos'
   | 'safari'
   | 'whatsapp';
 
@@ -39,6 +41,7 @@ interface Section {
     FilesSection,
     NotesSection,
     Overview,
+    PhotosSection,
     SafariSection,
     WhatsappSection,
   ],
@@ -62,6 +65,7 @@ export class Analysis {
     { id: 'calls', label: 'Calls' },
     { id: 'contacts', label: 'Contacts' },
     { id: 'notes', label: 'Notes' },
+    { id: 'photos', label: 'Photos' },
     { id: 'safari', label: 'Safari' },
     { id: 'whatsapp', label: 'WhatsApp' },
   ];
@@ -75,6 +79,7 @@ export class Analysis {
     calls: ['calls'],
     contacts: ['contacts'],
     notes: ['notes'],
+    photos: ['photos'],
     safari: ['safari_history', 'safari_bookmarks'],
     whatsapp: ['whatsapp_messages'],
   };

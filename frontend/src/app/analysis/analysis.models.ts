@@ -181,6 +181,32 @@ export interface WhatsappMessageRow {
   media_type: string | null;
 }
 
+export interface PhotoRow {
+  rowid: number;
+  file_id: string | null;
+  filename: string | null;
+  directory: string | null;
+  kind: string | null;
+  created_utc: string | null;
+  added_utc: string | null;
+  width: number | null;
+  height: number | null;
+  favorite: number;
+  hidden: number;
+  trashed: number;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface PhotoAlbumRow {
+  rowid: number;
+  title: string | null;
+  kind: string | null;
+  count: number;
+  start_utc: string | null;
+  end_utc: string | null;
+}
+
 export interface DomainCount {
   domain: string;
   count: number;

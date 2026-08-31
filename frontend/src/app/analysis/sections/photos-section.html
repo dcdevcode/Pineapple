@@ -1,0 +1,23 @@
+<div class="photos">
+  <app-artifact-table
+    class="photos__table"
+    [columns]="columns()"
+    [fetchPage]="fetch()"
+    [searchable]="true"
+    [scope]="view()"
+    [detailFields]="detail()"
+    [detailTitle]="title"
+    [resolvePreview]="resolvePreview()"
+  >
+    <mat-button-toggle-group
+      tableFilter
+      class="photos__switch"
+      [ngModel]="view()"
+      (ngModelChange)="view.set($event)"
+      hideSingleSelectionIndicator
+    >
+      <mat-button-toggle value="photos">Photos</mat-button-toggle>
+      <mat-button-toggle value="albums">Albums</mat-button-toggle>
+    </mat-button-toggle-group>
+  </app-artifact-table>
+</div>

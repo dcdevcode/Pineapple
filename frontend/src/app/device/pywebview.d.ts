@@ -17,6 +17,8 @@ import type {
   Page,
   PathResult,
   PeekResult,
+  PhotoAlbumRow,
+  PhotoRow,
   QueryResult,
   SafariBookmarkRow,
   SafariHistoryRow,
@@ -99,6 +101,12 @@ export interface PineappleApi {
     limit: number,
     offset: number,
   ): Promise<QueryResult<Page<WhatsappMessageRow>>>;
+  analysis_photos(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<PhotoRow>>>;
+  analysis_photo_albums(limit: number, offset: number): Promise<QueryResult<Page<PhotoAlbumRow>>>;
   analysis_preview_file(fileId: string): Promise<QueryResult<FilePreview>>;
   analysis_extract_file(fileId: string): Promise<ExtractResult | { ok: false }>;
 }
