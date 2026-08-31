@@ -17,5 +17,9 @@ frontend/.angular/
 # macOS
 .DS_Store
 
+# Editor / tooling local state
+.claude/
+.idea/
+
 # Local release-prep checklist (never committed)
 final_verification.md
