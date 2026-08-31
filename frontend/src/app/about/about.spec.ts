@@ -25,11 +25,11 @@ describe('About', () => {
     expect(creed?.querySelector('cite')?.textContent).toContain('Spider-Man (2002)');
   });
 
-  it('states the project is open source with an undecided license', async () => {
+  it('states the project is open source under the MIT License', async () => {
     const el = await render();
     const license = el.querySelector('.about__license')?.textContent ?? '';
     expect(license).toContain('open source');
-    expect(license).toContain('license is still to be decided');
+    expect(license).toContain('MIT License');
   });
 
   it('credits the four core projects, each as an outbound link', async () => {

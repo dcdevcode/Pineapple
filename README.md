@@ -34,9 +34,8 @@ incident response, and education**.
 
 ## License
 
-Pineapple is **open source**. The license has **not been decided yet** — until
-one is added, the code is under default copyright and no usage or distribution
-rights are granted. A permissive OSI license is planned; watch this file.
+Pineapple is **open source**, released under the **MIT License** — see
+[`LICENSE`](LICENSE).
 
 ---
 
