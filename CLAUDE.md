@@ -6,8 +6,8 @@ Guidance for Claude Code when working in this repository.
 
 **All code and documentation must be written in English** — comments, variable and
 function names, docstrings, commit messages, and every `.md` file. This is a hard
-requirement. Conversation with the user happens in Spanish, but nothing that lands
-in the repo is in Spanish.
+requirement. Chat with the user happens in whatever language they use in the
+conversation; only what gets committed to the repo must be English.
 
 ## Project overview
 

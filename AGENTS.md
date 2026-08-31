@@ -33,8 +33,9 @@ Two principles constrain almost every change:
 ## Before you start
 
 - **English only** in everything that lands in the repo — comments, identifiers,
-  docstrings, commit messages, and every `.md` file. (Conversation with the user
-  happens in Spanish; nothing committed is in Spanish.)
+  docstrings, commit messages, and every `.md` file. (Chat with the user happens
+  in whatever language they use in the conversation; only what gets committed is
+  required to be English.)
 - **Backend**: Python `>=3.14`, [`uv`](https://docs.astral.sh/uv/) only.
   **Frontend**: [`pnpm`](https://pnpm.io/) only — never `npm` or `yarn`.
 - Work on the **`development`** branch. `main` is the baseline. Commit every
