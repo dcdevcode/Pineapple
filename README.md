@@ -274,15 +274,15 @@ patterns — see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 | `frontend/src/app/` | The shell + the `device` / `syslog` / `backup` / `analysis` / `about` / `brand` feature areas. |
 | `ARCHITECTURE.md` | The deep reference: execution model, data formats, per-library usage. |
 | `UI.md` | The UI design system and component patterns. |
-| `AGENTS.md` | Orientation and a documentation map for AI coding agents. |
-| `CLAUDE.md` | Repository conventions. |
+| `AGENTS.md` | Instruction file for AI coding agents: orientation plus a map of every doc. |
+| `CLAUDE.md` | Instruction file for AI coding agents (Claude Code): the repository conventions and hard rules. Useful to human contributors too. |
 
 ---
 
 ## Requirements
 
 - **Python `>=3.14`** and [`uv`](https://docs.astral.sh/uv/)
-- **Node.js** and [`pnpm`](https://pnpm.io/) — never `npm` or `yarn`
+- **Node.js** and [`pnpm`](https://pnpm.io/)
 - A desktop OS with a system webview (macOS, Windows, or Linux with a WebKitGTK
   runtime — see the [pywebview docs](https://pywebview.flowrl.com/))
 - For the **Device** and **acquisition** features: a USB-connected, paired iOS
@@ -354,8 +354,9 @@ Pineapple does the orchestration; the hard forensic work is done by:
 ## Contributing
 
 - Work happens on the **`development`** branch; **`main`** holds the baseline.
-- All code and documentation in the repository must be **in English**.
 - `ruff`, `mypy --strict`, `pytest`, and the frontend `lint` / `prettier` /
   `test` / `build` must stay green — CI enforces it.
 - Conventions and the incremental-change philosophy are in
-  [`CLAUDE.md`](CLAUDE.md); AI agents should start from [`AGENTS.md`](AGENTS.md).
+  [`CLAUDE.md`](CLAUDE.md). Both [`CLAUDE.md`](CLAUDE.md) and
+  [`AGENTS.md`](AGENTS.md) are instruction files for AI coding agents — start
+  from [`AGENTS.md`](AGENTS.md).
