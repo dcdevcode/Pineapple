@@ -25,8 +25,34 @@
   color: var(--app-text-muted);
 }
 
+.about__creed {
+  margin: 16px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--app-border);
+  color: var(--app-text-muted);
+
+  p {
+    margin: 0;
+    font: var(--mat-sys-body-medium);
+    font-style: italic;
+  }
+
+  cite {
+    display: block;
+    margin-top: 4px;
+    font: var(--mat-sys-label-small);
+    font-style: normal;
+  }
+}
+
 .about__thanks {
   margin-top: 28px;
+}
+
+.about__license {
+  margin: 20px 0 0;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
 }
 
 .about__section-title {
