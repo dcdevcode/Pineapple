@@ -16,6 +16,9 @@ import sqlite3
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import ClassVar
+
+from cryptography.hazmat.primitives.keywrap import aes_key_unwrap
 
 # 2001-01-01 in ns; add per-message offsets. (Cocoa absolute time, iOS 11+.)
 _NS_2001 = 700_000_000 * 1_000_000_000
@@ -490,6 +493,21 @@ def make_pineapple(backup_root: Path, dest: Path) -> Path:
     return dest
 
 
+class _FakeKeybag:
+    """Minimal stand-in for ``google_iphone_dataprotection.Keybag``.
+
+    Holds one AES key-wrapping key per keychain protection class the fixtures
+    build items for; :meth:`unwrapKeyForClass` mirrors the real method's name and
+    RFC 3394 behaviour (``KeyError`` for an unknown class, ``InvalidUnwrap`` for
+    a bad blob -- both of which the reader treats as "cannot unwrap").
+    """
+
+    CLASS_KEYS: ClassVar[dict[int, bytes]] = {6: b"\x06" * 32, 11: b"\x0b" * 32}
+
+    def unwrapKeyForClass(self, protection_class: int, wrapped: bytes) -> bytes:
+        return aes_key_unwrap(self.CLASS_KEYS[protection_class], wrapped)
+
+
 class FakeEncryptedBackup:
     """Stand-in for ``iphone_backup_decrypt.EncryptedBackup``.
 
@@ -503,6 +521,7 @@ class FakeEncryptedBackup:
     def __init__(self, *, backup_directory: str, passphrase: str) -> None:
         self._root = Path(backup_directory)
         self._passphrase = passphrase
+        self._keybag = _FakeKeybag()
 
     def test_decryption(self) -> bool:
         if self._passphrase != self.PASSWORD:
