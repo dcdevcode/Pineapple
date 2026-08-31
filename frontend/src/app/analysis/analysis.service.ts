@@ -13,7 +13,6 @@ import type {
   ExtractResult,
   FilePreview,
   FileRow,
-  KeychainRow,
   MessageRow,
   NoteRow,
   Page,
@@ -245,10 +244,6 @@ export class AnalysisService {
 
   accounts(q: PageQuery): Promise<Page<AccountRow>> {
     return this.query((api) => api.analysis_accounts(q.search ?? null, q.limit, q.offset));
-  }
-
-  keychain(q: PageQuery): Promise<Page<KeychainRow>> {
-    return this.query((api) => api.analysis_keychain(q.search ?? null, q.limit, q.offset));
   }
 
   safariHistory(q: PageQuery): Promise<Page<SafariHistoryRow>> {

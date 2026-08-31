@@ -58,37 +58,6 @@ def test_plain_and_encrypted_readers_agree(tmp_path: Path) -> None:
         encrypted.close()
 
 
-def test_unwrap_keychain_key_plain_returns_none(tmp_path: Path) -> None:
-    root = build_backup(tmp_path / "src")
-    plain = open_reader(root, BackupMetadata(), "", tmp_path / "w")
-    try:
-        assert plain.unwrap_keychain_key(6, b"whatever") is None
-    finally:
-        plain.close()
-
-
-def test_unwrap_keychain_key_encrypted_uses_the_keybag(tmp_path: Path) -> None:
-    from cryptography.hazmat.primitives.keywrap import aes_key_wrap
-
-    from analysis_support import _FakeKeybag
-
-    root = build_backup(tmp_path / "src", encrypted=True)
-    reader = open_reader(
-        root,
-        BackupMetadata(is_encrypted=True),
-        FakeEncryptedBackup.PASSWORD,
-        tmp_path / "w",
-    )
-    data_key = b"\x11" * 32
-    wrapped = aes_key_wrap(_FakeKeybag.CLASS_KEYS[6], data_key)
-    try:
-        assert reader.unwrap_keychain_key(6, wrapped) == data_key
-        assert reader.unwrap_keychain_key(99, wrapped) is None  # unknown class
-        assert reader.unwrap_keychain_key(6, b"too short") is None
-    finally:
-        reader.close()
-
-
 def test_encrypted_reader_rejects_a_wrong_password(tmp_path: Path) -> None:
     root = build_backup(tmp_path / "enc", encrypted=True)
 

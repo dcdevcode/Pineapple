@@ -264,9 +264,7 @@ The runner iterates `ARTIFACT_PARSERS` in order. Each `ParserSpec` says where
 its source DB lives (`relative_path`, `domain`) and how to parse it. The
 reader extracts that one DB into `<case>/decrypted/`; the parser opens it
 read-only via `_common.read_source(path, label)` (which maps `sqlite3.Error`
-→ `ArtifactUnreadable`) and writes rows into `analysis.db`. A parser with
-`needs_reader` is handed the `BackupReader` as a third argument (the keychain
-parser needs it to unwrap item keys).
+→ `ArtifactUnreadable`) and writes rows into `analysis.db`.
 
 | Parser | Source | Notes |
 | --- | --- | --- |
@@ -274,20 +272,19 @@ parser needs it to unwrap item keys).
 | `calls` | `…/CallHistoryDB/CallHistory.storedata` | Core Data; **`encrypted_only`** |
 | `contacts` | `…/AddressBook/AddressBook.sqlitedb` | names + `ABMultiValue` phones/emails |
 | `notes` | `AppDomainGroup-group.com.apple.notes/NoteStore.sqlite` | body is gzip + protobuf (§8) |
-| `photos` | `CameraRollDomain/Media/PhotoData/Photos.sqlite` | Core Data; fills `photos` + `photo_albums`; each row keeps the asset's Manifest file id for preview |
+| `photos` | `CameraRollDomain/Media/PhotoData/Photos.sqlite` | Core Data; fills `photos` + `photo_albums`; each row keeps the asset's Manifest `file_id` (looked up in `files`) so the browser can preview the real image |
 | `calendar` | `…/Library/Calendar/Calendar.sqlitedb` | `CalendarItem` + `Calendar` + `Location`; `Participant` rows joined into `invitees` (`count_key`) |
 | `voicemail` | `…/Library/Voicemail/voicemail.db` | caller / duration / `trashed_date`; transcription column picked up when present |
-| `accounts` | `…/Library/Accounts/Accounts3.sqlite` | `ZACCOUNT` + `ZACCOUNTTYPE`; metadata only (secrets are in the keychain) |
+| `accounts` | `…/Library/Accounts/Accounts3.sqlite` | `ZACCOUNT` + `ZACCOUNTTYPE`; metadata only (no stored credentials) |
 | `device_usage` | `AppDomainGroup-group.com.apple.coreduet/…/knowledgeC.db` | **`encrypted_only`**; a curated four-stream slice of CoreDuet, capped at 50k rows |
-| `keychain` | `KeychainDomain/keychain-backup.plist` | **`encrypted_only`**, `needs_reader`; a binary plist, not SQLite (§8). Metadata always lands; secrets decrypted through the backup keybag, best-effort |
 | `safari_history` | `…/Safari/History.db` | **`encrypted_only`** |
 | `safari_bookmarks` | `…/Safari/Bookmarks.db` | self-referential table, `type` 1 = bookmark |
 | `whatsapp` | `AppDomainGroup-group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite` | fills `whatsapp_chats` + `whatsapp_messages` (`count_key`) |
 
 **Tolerance.** A missing or damaged source DB is recorded in `skipped`, never
-fatal. **`encrypted_only`.** iOS keeps call history, Safari history, the
-keychain and `knowledgeC.db` out of *unencrypted* backups, so their absence
-there is expected and the skip note says so.
+fatal. **`encrypted_only`.** iOS keeps call history, Safari history and
+`knowledgeC.db` out of *unencrypted* backups, so their absence there is
+expected and the skip note says so.
 
 ### 7.5 Write the descriptor
 
@@ -315,13 +312,12 @@ only open the DB.
   string**, so the frontend never does timezone maths.
 - **Core Data** stores (`calls`, `notes`, `whatsapp`, `photos`, `calendar`,
   `accounts`, `device_usage`) have `Z`-prefixed tables and `Z_PK` primary keys.
-- **Keychain** (`analysis/keychain.py`): `keychain-backup.plist` groups items
-  under `genp` / `inet` / `cert` / `keys` with cleartext metadata and an
-  encrypted `v_Data` blob (`[version][class][wrapped key][GCM ciphertext+tag]`).
-  The reader's `unwrap_keychain_key` unwraps the per-item key via the backup
-  keybag; AES-GCM with a 16-byte zero IV (Apple's `SecAESGCM`) then yields the
-  secret. Best-effort: an item that will not decode keeps its metadata and a
-  `secret_error`. Format follows the `iphone-dataprotection` reference.
+- **Photo file ids** (`parsers/photos.py`): `Photos.sqlite` names each asset by
+  `ZDIRECTORY` + `ZFILENAME`, not by backup id. The parser resolves the real
+  Manifest `file_id` from the already-indexed `files` table
+  (`CameraRollDomain` + `Media/<dir>/<name>`), leaving it NULL when the asset's
+  data is not in the backup (an iCloud-only photo). That id is what
+  `preview_file` / `extract_file` then use.
 
 ---
 
@@ -331,14 +327,14 @@ Everything a case needs is in one folder the user picks:
 
 ```
 <case>/<title>.json     the descriptor — source of truth for reopening
-<case>/analysis.db      the results (schema v3)
+<case>/analysis.db      the results (schema v4)
 <case>/backup/<udid>/   the archive extracted as-is (encrypted blobs stay encrypted)
 <case>/decrypted/       Manifest.db + the source DBs the parsers needed
 ```
 
 - **`<title>`** defaults to the device serial; `find_descriptor` requires
   exactly one `*.json` in the folder (one analysis per folder).
-- **Schema is v3.** `load_case` rejects a mismatch — re-analyse older cases.
+- **Schema is v4.** `load_case` rejects a mismatch — re-analyse older cases.
 - **`CaseHandle`** answers the frontend's paginated read queries. It opens a
   **fresh short-lived `sqlite3` connection per query** (`_connect`), because
   pywebview answers bridge calls on a thread pool and a SQLite connection may
@@ -393,9 +389,9 @@ superseded run bails out, an `IDLE` constant, and an **idle no-op when
 
 `AnalysisService.summary()` being non-null is what switches the tab from the
 **launcher** to the **case browser** (a nav-rail over Overview / Apps / Files
-/ Messages / Calls / Contacts / Notes / Safari / WhatsApp). `AnalysisDialog`
-is the pick → configure → progress wizard; on `done` the service calls
-`open_case` and the tab flips.
+/ Messages / Calls / Contacts / Notes / Photos / Calendar / Voicemail / Usage
+/ Accounts / Safari / WhatsApp). `AnalysisDialog` is the pick → configure →
+progress wizard; on `done` the service calls `open_case` and the tab flips.
 
 `ArtifactTable` is a generic `mat-table` + `mat-paginator` that **owns its own
 fetch loop** — it re-runs the injected `fetchPage` whenever the page,
@@ -404,9 +400,10 @@ error. A searchable table projects a `[tableFilter]` control into its toolbar.
 A row click opens `RecordDetailDialog` (every field, full text, a copy icon
 per field; Files rows add a content preview + Extract). The four simple
 tables (apps / messages / calls / contacts) are configured inline in
-`analysis.ts`; Files / Notes / Safari / WhatsApp have their own section
-components because they carry extra controls (domain filter, unlock banner,
-history↔bookmarks toggle, chat scope).
+`analysis.ts`; the rest have their own section components — Files / Safari /
+WhatsApp / Photos carry extra controls (domain filter, unlock banner,
+history↔bookmarks and photos↔albums toggles, chat scope, image preview), and
+Notes / Calendar / Voicemail / Usage / Accounts are plain searchable tables.
 
 ### `pywebview.d.ts`
 

@@ -8,7 +8,6 @@ import { ArtifactTable, type ColumnDef, type FetchPage, type TableRow } from './
 import { AccountsSection } from './sections/accounts-section';
 import { CalendarSection } from './sections/calendar-section';
 import { FilesSection } from './sections/files-section';
-import { KeychainSection } from './sections/keychain-section';
 import { NotesSection } from './sections/notes-section';
 import { Overview } from './sections/overview';
 import { PhotosSection } from './sections/photos-section';
@@ -32,7 +31,6 @@ type SectionId =
   | 'voicemail'
   | 'usage'
   | 'accounts'
-  | 'keychain'
   | 'safari'
   | 'whatsapp';
 
@@ -51,7 +49,6 @@ interface Section {
     AccountsSection,
     CalendarSection,
     FilesSection,
-    KeychainSection,
     NotesSection,
     Overview,
     PhotosSection,
@@ -85,7 +82,6 @@ export class Analysis {
     { id: 'voicemail', label: 'Voicemail' },
     { id: 'usage', label: 'Usage' },
     { id: 'accounts', label: 'Accounts' },
-    { id: 'keychain', label: 'Keychain' },
     { id: 'safari', label: 'Safari' },
     { id: 'whatsapp', label: 'WhatsApp' },
   ];
@@ -104,7 +100,6 @@ export class Analysis {
     voicemail: ['voicemail'],
     usage: ['device_usage'],
     accounts: ['accounts'],
-    keychain: ['keychain'],
     safari: ['safari_history', 'safari_bookmarks'],
     whatsapp: ['whatsapp_messages'],
   };

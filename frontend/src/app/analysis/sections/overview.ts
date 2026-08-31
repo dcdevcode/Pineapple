@@ -33,7 +33,6 @@ const COUNT_LABELS: Record<string, string> = {
   voicemail: 'Voicemail',
   device_usage: 'Usage events',
   accounts: 'Accounts',
-  keychain: 'Keychain items',
 };
 
 /** The case Overview: device facts, the parse report, and the source archive. */

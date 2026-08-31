@@ -17,7 +17,7 @@ import threading
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from pineapple.analysis import archive
 from pineapple.analysis.archive import ArchiveCancelled
@@ -33,8 +33,6 @@ from pineapple.analysis.errors import AnalysisError, ArtifactUnreadable
 from pineapple.analysis.metadata import BackupMetadata
 from pineapple.analysis.parsers import (
     ARTIFACT_PARSERS,
-    ParseFn,
-    ReaderParseFn,
     index_apps,
     index_backup_info,
     index_files,
@@ -283,12 +281,7 @@ class AnalysisRun:
                     skipped.append(f"{spec.name}: not present in the backup")
                 continue
             try:
-                if spec.needs_reader:
-                    parse_with_reader = cast(ReaderParseFn, spec.parse)
-                    counts[spec.counts_as] = parse_with_reader(source, conn, reader)
-                else:
-                    parse = cast(ParseFn, spec.parse)
-                    counts[spec.counts_as] = parse(source, conn)
+                counts[spec.counts_as] = spec.parse(source, conn)
                 conn.commit()
             except ArtifactUnreadable as error:
                 skipped.append(str(error))

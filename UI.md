@@ -130,7 +130,7 @@ visible text label.
 A fixed-width (`200px`) left rail of `mat-nav-list` **buttons** (not anchors —
 they switch state, not navigate), one per artifact kind (Overview, Apps,
 Files, Messages, Calls, Contacts, Notes, Photos, Calendar, Voicemail, Usage,
-Accounts, Keychain, Safari, WhatsApp), each showing a section label and, when
+Accounts, Safari, WhatsApp), each showing a section label and, when
 known, a right-aligned muted count. The rail scrolls when the list outgrows
 the viewport. Flat full-width rows — **no pill, no
 border** (the `<button>` UA border is reset); the `[activated]` row keeps

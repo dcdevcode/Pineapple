@@ -11,7 +11,6 @@ from analysis_support import (
     ATTRIBUTED_BODY_TEXT,
     BACKUP_FILE_COUNT,
     NOTE_BODY_TEXT,
-    FakeKeychainReader,
     build_backup,
     file_id,
 )
@@ -22,7 +21,6 @@ from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.device_usage import parse_device_usage
 from pineapple.analysis.parsers.files import index_files
-from pineapple.analysis.parsers.keychain import parse_keychain
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes, walk_protobuf_string
 from pineapple.analysis.parsers.photos import parse_photos
@@ -144,9 +142,19 @@ def test_parse_whatsapp_fills_chats_and_messages(
     assert rows[1]["chat_name"] == "Alice"
 
 
+def _index_files(backup: Path, conn: sqlite3.Connection) -> None:
+    manifest = sqlite3.connect(backup / "Manifest.db")
+    try:
+        index_files(manifest, conn)
+    finally:
+        manifest.close()
+    conn.commit()
+
+
 def test_parse_photos_reads_assets_and_albums(
     conn: sqlite3.Connection, backup: Path
 ) -> None:
+    _index_files(backup, conn)  # the parser resolves file ids from `files`
     written = parse_photos(
         _source(backup, "CameraRollDomain", "Media/PhotoData/Photos.sqlite"), conn
     )
@@ -158,12 +166,15 @@ def test_parse_photos_reads_assets_and_albums(
     assert rows[0]["favorite"] == 1
     assert rows[0]["latitude"] == 37.33
     assert rows[0]["created_utc"].startswith("2023-")
+    # Resolved from the file index -- the asset blob is in the backup.
     assert rows[0]["file_id"] == file_id(
         "CameraRollDomain", "Media/DCIM/100APPLE/IMG_0001.HEIC"
     )
     assert rows[1]["kind"] == "video"
     assert rows[1]["hidden"] == 1
     assert rows[1]["latitude"] is None
+    # Row 2's asset is not in the backup -- no file id, so no preview.
+    assert rows[1]["file_id"] is None
 
     albums = conn.execute("SELECT * FROM photo_albums").fetchall()
     assert [a["title"] for a in albums] == ["Holidays"]
@@ -247,38 +258,6 @@ def test_parse_device_usage_keeps_only_curated_streams(
     ).fetchone()
     assert backlit["bundle_id"] is None
     assert backlit["value"] == "1"
-
-
-def test_parse_keychain_decrypts_secrets_with_the_keybag(
-    conn: sqlite3.Connection, backup: Path
-) -> None:
-    written = parse_keychain(
-        _source(backup, "KeychainDomain", "keychain-backup.plist"),
-        conn,
-        FakeKeychainReader(),
-    )
-
-    assert written == 2
-    rows = conn.execute("SELECT * FROM keychain ORDER BY rowid").fetchall()
-    genp = next(r for r in rows if r["item_class"] == "genp")
-    assert genp["account"] == "wifi-home"
-    assert genp["service"] == "AirPort"
-    assert genp["secret"] == "hunter2"
-    assert genp["secret_error"] is None
-    assert genp["created_utc"] == "2023-06-01T12:00:00+00:00"
-    inet = next(r for r in rows if r["item_class"] == "inet")
-    assert inet["server"] == "mail.example.com"
-    assert inet["secret"] == "s3cr3t"
-
-
-def test_parse_keychain_raises_on_a_bad_plist(
-    conn: sqlite3.Connection, tmp_path: Path
-) -> None:
-    bad = tmp_path / "keychain-backup.plist"
-    bad.write_bytes(b"not a plist at all")
-
-    with pytest.raises(ArtifactUnreadable):
-        parse_keychain(bad, conn, FakeKeychainReader())
 
 
 def test_parse_calls_maps_direction_and_service(

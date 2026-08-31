@@ -33,6 +33,7 @@ describe('PhotosSection', () => {
   beforeEach(async () => {
     photos.mockClear();
     photoAlbums.mockClear();
+    previewFile.mockClear();
     dialog.open.mockClear();
     await TestBed.configureTestingModule({
       imports: [PhotosSection],
@@ -64,7 +65,7 @@ describe('PhotosSection', () => {
     expect(headers(fixture)).toEqual(['Title', 'Kind', 'Items', 'From', 'To']);
   });
 
-  it('opens the detail dialog and resolves a thumbnail for a photo row', async () => {
+  it('opens the detail dialog and resolves a preview for a photo row', async () => {
     const fixture = TestBed.createComponent(PhotosSection);
     await fixture.whenStable();
 
@@ -72,6 +73,23 @@ describe('PhotosSection', () => {
     await fixture.whenStable();
 
     expect(previewFile).toHaveBeenCalledWith('abc');
+    expect(dialog.open).toHaveBeenCalled();
+  });
+
+  it('opens the detail dialog without a preview when the row has no file id', async () => {
+    photos.mockResolvedValueOnce({
+      rows: [{ rowid: 2, file_id: null, filename: 'IMG_0002.HEIC', kind: 'image' }],
+      total: 1,
+      limit: 50,
+      offset: 0,
+    });
+    const fixture = TestBed.createComponent(PhotosSection);
+    await fixture.whenStable();
+
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('tr.mat-mdc-row')!.click();
+    await fixture.whenStable();
+
+    expect(previewFile).not.toHaveBeenCalled();
     expect(dialog.open).toHaveBeenCalled();
   });
 });

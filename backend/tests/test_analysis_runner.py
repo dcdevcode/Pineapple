@@ -66,7 +66,6 @@ def test_full_run_on_an_unencrypted_image(
     assert state["counts"]["voicemail"] == 2
     assert state["counts"]["accounts"] == 1
     assert state["counts"]["device_usage"] == 3
-    assert state["counts"]["keychain"] == 2
     assert state["counts"]["safari_history"] == 2
     assert state["counts"]["safari_bookmarks"] == 1
     assert state["counts"]["whatsapp_messages"] == 2
@@ -86,6 +85,13 @@ def test_full_run_on_an_unencrypted_image(
     handle = load_case(case_dir)
     try:
         texts = [row["text"] for row in handle.messages()["rows"]]
+        # The camera-roll asset resolves to a real backup file the browser can
+        # preview; the iCloud-only asset has no file id.
+        photos = {row["filename"]: row for row in handle.photos()["rows"]}
+        assert photos["IMG_0001.HEIC"]["file_id"]
+        assert photos["IMG_0002.MOV"]["file_id"] is None
+        preview = handle.preview_file(photos["IMG_0001.HEIC"]["file_id"])
+        assert preview["kind"] == "image"
     finally:
         handle.close()
     assert ATTRIBUTED_BODY_TEXT in texts

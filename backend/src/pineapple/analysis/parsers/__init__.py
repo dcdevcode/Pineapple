@@ -24,10 +24,6 @@ from pineapple.analysis.parsers.calls import parse_calls
 from pineapple.analysis.parsers.contacts import parse_contacts
 from pineapple.analysis.parsers.device_usage import parse_device_usage
 from pineapple.analysis.parsers.files import index_files
-from pineapple.analysis.parsers.keychain import (
-    SupportsKeychainUnwrap,
-    parse_keychain,
-)
 from pineapple.analysis.parsers.messages import parse_messages
 from pineapple.analysis.parsers.notes import parse_notes
 from pineapple.analysis.parsers.photos import parse_photos
@@ -38,11 +34,8 @@ from pineapple.analysis.parsers.safari import (
 from pineapple.analysis.parsers.voicemail import parse_voicemail
 from pineapple.analysis.parsers.whatsapp import parse_whatsapp
 
-# Most parsers take (source, analysis.db). A few need the backup reader too --
-# to unwrap keychain item keys -- and set `needs_reader` so the runner passes it
-# (the reader satisfies `SupportsKeychainUnwrap`).
+# Every parser takes (source, analysis.db) and returns the row count it wrote.
 ParseFn = Callable[[Path, sqlite3.Connection], int]
-ReaderParseFn = Callable[[Path, sqlite3.Connection, SupportsKeychainUnwrap], int]
 
 
 @dataclass(frozen=True)
@@ -52,17 +45,14 @@ class ParserSpec:
     name: str
     relative_path: str
     domain: str
-    parse: ParseFn | ReaderParseFn
-    # iOS keeps some files (call history, keychain, Safari, Health) out of
-    # *unencrypted* backups; when one of those is missing and the backup is not
-    # encrypted, that is expected rather than an anomaly.
+    parse: ParseFn
+    # iOS keeps some files (call history, Safari, Health) out of *unencrypted*
+    # backups; when one of those is missing and the backup is not encrypted, that
+    # is expected rather than an anomaly.
     encrypted_only: bool = False
     # `analysis.db` table the parser's return count belongs to, when it differs
     # from `name` (whatsapp fills whatsapp_chats + whatsapp_messages).
     count_key: str | None = None
-    # When True the runner calls `parse(source, conn, reader)` instead of
-    # `parse(source, conn)`.
-    needs_reader: bool = False
 
     @property
     def counts_as(self) -> str:
@@ -133,14 +123,6 @@ ARTIFACT_PARSERS: list[ParserSpec] = [
         encrypted_only=True,
     ),
     ParserSpec(
-        "keychain",
-        "keychain-backup.plist",
-        "KeychainDomain",
-        parse_keychain,
-        encrypted_only=True,
-        needs_reader=True,
-    ),
-    ParserSpec(
         "safari_bookmarks",
         "Library/Safari/Bookmarks.db",
         "HomeDomain",
@@ -159,7 +141,6 @@ __all__ = [
     "ARTIFACT_PARSERS",
     "ParseFn",
     "ParserSpec",
-    "ReaderParseFn",
     "index_apps",
     "index_backup_info",
     "index_files",

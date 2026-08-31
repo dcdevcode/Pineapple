@@ -6,13 +6,14 @@ per album. Dates are Cocoa absolute time; a latitude/longitude of ``-180`` means
 "no location".
 
 One parser fills ``photos`` + ``photo_albums`` and returns the photo count. Each
-asset row also carries the Manifest file id of the image itself (domain + relative
-path hashed the way iOS names backup blobs) so the browser can preview it.
+asset row also carries the Manifest file id of the image itself, resolved from the
+already-indexed ``files`` table by ``(domain, relative path)``, so the browser can
+preview it; it is NULL when the asset's data is not in the backup (e.g. an
+iCloud-only photo that was never downloaded to the device).
 """
 
 from __future__ import annotations
 
-import hashlib
 import sqlite3
 from pathlib import Path
 
@@ -56,11 +57,23 @@ def _asset_table(source: sqlite3.Connection) -> str:
     raise sqlite3.OperationalError("no ZASSET / ZGENERICASSET table")
 
 
-def _file_id(directory: object, filename: object) -> str | None:
+def _asset_file_ids(conn: sqlite3.Connection) -> dict[str, str]:
+    """Map every indexed ``CameraRollDomain`` file's relative path to its id."""
+    return {
+        row[0]: row[1]
+        for row in conn.execute(
+            "SELECT relative_path, file_id FROM files WHERE domain = ?",
+            (_ASSET_DOMAIN,),
+        )
+    }
+
+
+def _file_id(
+    file_ids: dict[str, str], directory: object, filename: object
+) -> str | None:
     if not directory or not filename:
         return None
-    relative_path = f"Media/{directory}/{filename}"
-    return hashlib.sha1(f"{_ASSET_DOMAIN}-{relative_path}".encode()).hexdigest()
+    return file_ids.get(f"Media/{directory}/{filename}")
 
 
 def _coordinate(value: object) -> float | None:
@@ -80,6 +93,7 @@ def parse_photos(source_db: Path, conn: sqlite3.Connection) -> int:
         assets = source.execute(_assets_query(_asset_table(source))).fetchall()
         albums = source.execute(_ALBUMS_QUERY).fetchall()
 
+    file_ids = _asset_file_ids(conn)
     conn.executemany(
         "INSERT OR REPLACE INTO photos"
         "(rowid, file_id, filename, directory, kind, created_utc, added_utc, "
@@ -88,7 +102,7 @@ def parse_photos(source_db: Path, conn: sqlite3.Connection) -> int:
         [
             (
                 row["rowid"],
-                _file_id(row["directory"], row["filename"]),
+                _file_id(file_ids, row["directory"], row["filename"]),
                 as_text(row["filename"]),
                 as_text(row["directory"]),
                 _kind(row["kind"]),

@@ -51,7 +51,6 @@ describe('Analysis', () => {
       voicemail: vi.fn().mockResolvedValue(emptyPage),
       deviceUsage: vi.fn().mockResolvedValue(emptyPage),
       accounts: vi.fn().mockResolvedValue(emptyPage),
-      keychain: vi.fn().mockResolvedValue(emptyPage),
       safariHistory: vi.fn().mockResolvedValue(emptyPage),
       safariBookmarks: vi.fn().mockResolvedValue(emptyPage),
       whatsappChats: vi.fn().mockResolvedValue(emptyPage),
@@ -130,7 +129,6 @@ describe('Analysis', () => {
         'Voicemail',
         'Usage',
         'Accounts',
-        'Keychain',
         'Safari',
         'WhatsApp',
       ]),
@@ -151,10 +149,6 @@ describe('Analysis', () => {
     fixture.componentInstance['active'].set('accounts');
     await fixture.whenStable();
     expect(el.querySelector('app-accounts-section')).toBeTruthy();
-
-    fixture.componentInstance['active'].set('keychain');
-    await fixture.whenStable();
-    expect(el.querySelector('app-keychain-section')).toBeTruthy();
   });
 
   it('returns to the launcher on "Close analysis"', async () => {

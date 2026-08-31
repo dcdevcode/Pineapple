@@ -45,7 +45,7 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `backend/src/pineapple/session.py` | `DeviceSession`: one background asyncio loop for long-lived device work. Module singleton `session`. |
 | `backend/src/pineapple/syslog.py` | `SyslogStream`: live `com.apple.os_trace_relay` stream into a bounded buffer the frontend drains. |
 | `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
-| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `mbfile` (decode a `Manifest.db` `Files.file` blob), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`; `unwrap_keychain_key` for keychain), `schema` (v3), `errors`, `keychain` (decode `keychain-backup.plist`), `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / photos / calendar / voicemail / accounts / device usage / keychain / safari / whatsapp / file index → `analysis.db`; `_common.read_source` wraps the DB open), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
+| `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `mbfile` (decode a `Manifest.db` `Files.file` blob), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`), `schema` (v4), `errors`, `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / photos / calendar / voicemail / accounts / device usage / safari / whatsapp / file index → `analysis.db`; `_common.read_source` wraps the DB open), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup` / `analysis`, bound to `window.pywebview.api`. |
 | `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
@@ -56,7 +56,7 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `frontend/src/app/syslog/` | Syslog viewer: `SyslogService` (polls the bridge) + `SyslogDialog`, the live-log modal opened from the Device tab. |
 | `frontend/src/app/backup/` | Logical acquisition: `BackupService` (polls the bridge) + `BackupDialog`, the confirm → password → progress modal opened by the **Create Pineapple Logical Image** button. |
 | `frontend/src/app/about/` | About tab: the `Brand` lockup (`size="large"`), the author line, and a `Thanks` list crediting the core libraries (`pymobiledevice3`, `iphone_backup_decrypt`, `python-typedstream`, `pywebview`). Static — no bridge. |
-| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Photos` / `Calendar` / `Voicemail` / `Usage` / `Accounts` / `Keychain` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control beside Search. Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
+| `frontend/src/app/analysis/` | Analysis tab: `AnalysisService` (parse polling + case queries + preview/extract/unlock) + `AnalysisDialog` (pick → configure → progress wizard) + the case browser (nav-rail over `Overview` / `Files` / `Notes` / `Photos` / `Calendar` / `Voicemail` / `Usage` / `Accounts` / `Safari` / `WhatsApp` + the generic `ArtifactTable` for apps / messages / calls / contacts). A searchable `ArtifactTable` shows one toolbar row: a projected `[tableFilter]` control beside Search. Any table row opens `RecordDetailDialog` (all fields, full text, a compact copy icon per field; Files adds content preview + Extract). |
 | `frontend/src/styles.scss` | Global Angular Material theme — a single fixed **light** scheme (no theme switch), a goldenrod-amber accent, a nod to the pineapple. |
 | `frontend/eslint.config.js` | `angular-eslint` + `typescript-eslint` flat config (`pnpm lint`). |
 | `.github/workflows/ci.yml` | CI: backend (ruff / mypy / pytest) and frontend (prettier / lint / test / build) on every push and PR. |
@@ -183,18 +183,17 @@ buttons, emoji, purple, glassmorphism).
   `notes` = `NoteStore.sqlite` (gzip+protobuf body, best-effort), `safari_history`
   / `safari_bookmarks` = `History.db` / `Bookmarks.db`, `whatsapp` =
   `ChatStorage.sqlite` → two tables, `photos` = `Photos.sqlite` → `photos` +
-  `photo_albums`, each photo row keeping the asset's Manifest file id for preview,
+  `photo_albums`, each photo row keeping the asset's Manifest `file_id` (resolved
+  from the `files` index) so the browser can preview the real image,
   `calendar` = `Calendar.sqlitedb` → `calendar_events`, `voicemail` =
   `voicemail.db`, `accounts` = `Accounts3.sqlite`, `device_usage` =
-  a curated slice of `knowledgeC.db`, `keychain` = `keychain-backup.plist`
-  (binary plist, not SQLite; `needs_reader` to unwrap item keys via the backup
-  keybag; metadata always, secrets best-effort, decode in `analysis/keychain.py`))
+  a curated slice of `knowledgeC.db`)
   are tolerant: a missing or damaged source
-  DB is recorded as skipped, not fatal. `calls`, `safari_history`,
-  `device_usage` and `keychain` are
+  DB is recorded as skipped, not fatal. `calls`, `safari_history` and
+  `device_usage` are
   `encrypted_only` — iOS keeps those out of *unencrypted* backups, so their
   absence there is expected and the skip note says so. All timestamps ISO-8601
-  UTC. Schema is **v3**; `load_case` rejects a mismatch (re-analyze older cases).
+  UTC. Schema is **v4**; `load_case` rejects a mismatch (re-analyze older cases).
 - `reader` / `CaseHandle` file access: `extract_file(file_id, …)` and
   `read_bytes(file_id, …)` (regular files only) on both readers; `CaseHandle`
   lazily opens a `BackupReader` against `<case>/backup/<udid>` — for an encrypted
@@ -208,7 +207,9 @@ buttons, emoji, purple, glassmorphism).
   `open_case(dir, password="")` loads an existing folder, `analysis_unlock`
   supplies the key for an already-open encrypted case, and `analysis_summary`
   / `analysis_apps` / `analysis_domains` / `analysis_files` / `analysis_messages`
-  / `analysis_calls` / `analysis_contacts` / `analysis_notes`
+  / `analysis_calls` / `analysis_contacts` / `analysis_notes` / `analysis_photos`
+  / `analysis_photo_albums` / `analysis_calendar` / `analysis_voicemail`
+  / `analysis_accounts` / `analysis_device_usage`
   / `analysis_safari_history` / `analysis_safari_bookmarks`
   / `analysis_whatsapp_chats` / `analysis_whatsapp_messages` / `analysis_preview_file`
   answer from the open `CaseHandle` in an `{"ok": …, "result": …}` envelope;
@@ -241,8 +242,8 @@ buttons, emoji, purple, glassmorphism).
   so the tab flips to the browser; `summary()` non-null is what the `Analysis`
   component switches on (launcher vs browser). The browser is a nav-rail
   (`Overview`, `Apps`, `Files`, `Messages`, `Calls`, `Contacts`, `Notes`,
-  `Photos`, `Calendar`, `Voicemail`, `Usage`, `Accounts`, `Keychain`,
-  `Safari`, `WhatsApp`). `ArtifactTable` is a generic `mat-table` +
+  `Photos`, `Calendar`, `Voicemail`, `Usage`, `Accounts`, `Safari`,
+  `WhatsApp`). `ArtifactTable` is a generic `mat-table` +
   `mat-paginator` that owns its fetch loop; a searchable one renders a toolbar
   row where a section can project a filter control with the `[tableFilter]`
   attribute (it sits left of Search). When given `detailFields` a row click
@@ -252,10 +253,10 @@ buttons, emoji, purple, glassmorphism).
   `analysis_preview_file`) and an `onExtract` action, and shows an unlock banner
   (password → `analysis_unlock`) for an encrypted case whose key was not retained.
   `SafariSection` and `PhotosSection` are one table switched by a projected
-  toggle (History / Bookmarks; Photos / Albums — Photos rows resolve a
-  thumbnail); `WhatsappSection` scopes the message table by a chosen chat;
-  `KeychainSection` reuses the Files unlock banner (the key is what decrypts
-  secrets). `Calendar` / `Voicemail` / `Usage` / `Accounts` are plain searchable
+  toggle (History / Bookmarks; Photos / Albums — a Photos row with a `file_id`
+  resolves the real image via `analysis_preview_file`, shown in the detail
+  dialog); `WhatsappSection` scopes the message table by a chosen chat.
+  `Calendar` / `Voicemail` / `Usage` / `Accounts` are plain searchable
   tables. The service's query wrappers unwrap the
   `{ok, result}` envelope and throw on `{ok:false}`. Re-opening a case is manual
   (the launcher's "Open existing analysis"); nothing is persisted locally. Idle

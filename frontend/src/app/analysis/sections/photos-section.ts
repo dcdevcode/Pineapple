@@ -96,11 +96,14 @@ export class PhotosSection {
     this.view() === 'photos' ? this.photoDetail : this.albumDetail,
   );
 
-  /** Only the asset view resolves a thumbnail. */
+  /**
+   * Only the asset view resolves a preview, and only when the row carries a
+   * file id — an iCloud-only photo whose data never reached the backup has none.
+   */
   protected readonly resolvePreview = computed(() =>
     this.view() === 'photos'
       ? (row: TableRow): Promise<FilePreview | null> =>
-          this.analysis.previewFile(String(row['file_id']))
+          row['file_id'] ? this.analysis.previewFile(String(row['file_id'])) : Promise.resolve(null)
       : null,
   );
 

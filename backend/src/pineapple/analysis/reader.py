@@ -54,16 +54,6 @@ class BackupReader(Protocol):
     ) -> bytes | None:
         """Return up to ``max_bytes`` of one backup file, or ``None`` if absent."""
 
-    def unwrap_keychain_key(
-        self, protection_class: int, wrapped: bytes
-    ) -> bytes | None:
-        """Unwrap a keychain item's data key with the backup keybag.
-
-        Only an unlocked encrypted backup can do this; a plain backup (whose
-        keychain is device-bound and not recoverable offline) returns ``None``,
-        as does any item whose protection class the keybag cannot open.
-        """
-
     def close(self) -> None:
         """Release the manifest connection and any temp state."""
 
@@ -148,11 +138,6 @@ class PlainBackupReader:
         with blob.open("rb") as handle:
             return handle.read(max_bytes)
 
-    def unwrap_keychain_key(
-        self, protection_class: int, wrapped: bytes
-    ) -> bytes | None:
-        return None  # a plain backup's keychain is not recoverable offline
-
     def close(self) -> None:
         if self._conn is not None:
             self._conn.close()
@@ -228,24 +213,6 @@ class EncryptedBackupReader:
         except FileNotFoundError:
             return None
         return bytes(data[:max_bytes])
-
-    def unwrap_keychain_key(
-        self, protection_class: int, wrapped: bytes
-    ) -> bytes | None:
-        # `iphone_backup_decrypt` unlocks the keybag in `test_decryption()` (run
-        # in `__init__`); reach into it the same defensive way `close()` reaches
-        # for `_cleanup`. `unwrapKeyForClass` raises for a class the keybag has
-        # no key for (e.g. a passcode-protected class on a device with no
-        # passcode) -- treated as "cannot unwrap".
-        keybag = getattr(self._backup, "_keybag", None)
-        unwrap = getattr(keybag, "unwrapKeyForClass", None)
-        if unwrap is None:
-            return None
-        try:
-            result = unwrap(protection_class, wrapped)
-        except Exception:
-            return None
-        return result if isinstance(result, bytes) else None
 
     def close(self) -> None:
         if self._conn is not None:

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sqlite3
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 _DDL = """
 CREATE TABLE case_meta (
@@ -132,7 +132,8 @@ CREATE TABLE whatsapp_messages (
 CREATE INDEX idx_whatsapp_messages_date ON whatsapp_messages(date_utc);
 
 -- One row per camera-roll asset. `file_id` is the Manifest id of the asset file
--- itself (domain + relative path hashed), so the browser can preview it.
+-- itself, looked up in `files` during parsing, so the browser can preview it;
+-- NULL when the asset's data is not in the backup (e.g. an iCloud-only photo).
 CREATE TABLE photos (
     rowid       INTEGER PRIMARY KEY,
     file_id     TEXT,
@@ -158,22 +159,6 @@ CREATE TABLE photo_albums (
     count     INTEGER NOT NULL DEFAULT 0,
     start_utc TEXT,
     end_utc   TEXT
-);
-
--- One row per keychain item. `secret` is the decrypted value when the backup
--- keybag could unwrap it; otherwise `secret` is NULL and `secret_error` says why.
-CREATE TABLE keychain (
-    rowid            INTEGER PRIMARY KEY,
-    item_class       TEXT,
-    account          TEXT,
-    service          TEXT,
-    server           TEXT,
-    access_group     TEXT,
-    protection_class INTEGER,
-    created_utc      TEXT,
-    modified_utc     TEXT,
-    secret           TEXT,
-    secret_error     TEXT
 );
 
 CREATE TABLE calendar_events (

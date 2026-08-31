@@ -8,20 +8,14 @@ for the real decryption library and serves the cleartext fixtures.
 from __future__ import annotations
 
 import base64
-import datetime as dt
 import gzip
 import hashlib
 import plistlib
 import shutil
 import sqlite3
-import struct
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar
-
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.keywrap import aes_key_unwrap, aes_key_wrap
 
 # 2001-01-01 in ns; add per-message offsets. (Cocoa absolute time, iOS 11+.)
 _NS_2001 = 700_000_000 * 1_000_000_000
@@ -71,50 +65,12 @@ def mbfile_blob(
     return plistlib.dumps(plist, fmt=plistlib.FMT_BINARY)
 
 
-class _FakeKeybag:
-    """Minimal stand-in for ``google_iphone_dataprotection.Keybag``.
-
-    Holds one AES key-wrapping key per keychain protection class the fixtures
-    build items for; :meth:`unwrapKeyForClass` mirrors the real method's name and
-    RFC 3394 behaviour (``KeyError`` for an unknown class, ``InvalidUnwrap`` for
-    a bad blob -- both of which the reader treats as "cannot unwrap").
-    """
-
-    CLASS_KEYS: ClassVar[dict[int, bytes]] = {6: b"\x06" * 32, 11: b"\x0b" * 32}
-
-    def unwrapKeyForClass(self, protection_class: int, wrapped: bytes) -> bytes:
-        return aes_key_unwrap(self.CLASS_KEYS[protection_class], wrapped)
-
-
-class FakeKeychainReader:
-    """A ``SupportsKeychainUnwrap`` stub for testing the keychain parser without
-    building a whole encrypted backup."""
-
-    def unwrap_keychain_key(
-        self, protection_class: int, wrapped: bytes
-    ) -> bytes | None:
-        try:
-            return _FakeKeybag().unwrapKeyForClass(protection_class, wrapped)
-        except Exception:
-            return None
-
-
-def keychain_item_blob(
-    secret: str, *, protection_class: int = 6, version: int = 4
-) -> bytes:
-    """A ``v_Data`` blob the keychain decoder can round-trip via :class:`_FakeKeybag`.
-
-    Layout: ``[version u32-le][class u32-le][wrapped-key-len u32-le][wrapped key]
-    [AES-GCM ciphertext + 16-byte tag]`` over a ``{"v_Data": <secret>}`` plist,
-    IV = 16 zero bytes (Apple's ``SecAESGCM``).
-    """
-    data_key = hashlib.sha256(f"{protection_class}:{secret}".encode()).digest()
-    wrapped = aes_key_wrap(_FakeKeybag.CLASS_KEYS[protection_class], data_key)
-    inner = plistlib.dumps({"v_Data": secret.encode()}, fmt=plistlib.FMT_BINARY)
-    encryptor = Cipher(algorithms.AES(data_key), modes.GCM(b"\x00" * 16)).encryptor()
-    ciphertext = encryptor.update(inner) + encryptor.finalize()
-    header = struct.pack("<III", version, protection_class, len(wrapped))
-    return header + wrapped + ciphertext + encryptor.tag
+# A 1x1 PNG -- stands in for a camera-roll asset so the photo-preview path has a
+# real image blob to fetch and classify.
+PNG_1PX = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4"
+    "//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
+)
 
 
 def _script(path: Path, statements: str) -> None:
@@ -375,36 +331,6 @@ INSERT INTO ZOBJECT VALUES
     )
 
 
-# Naive on purpose: exercises the decoder's "assume UTC" path.
-_KEYCHAIN_DATE = dt.datetime(2023, 6, 1, 12, 0, 0)
-
-
-def _keychain(path: Path) -> None:
-    plist = {
-        "genp": [
-            {
-                "acct": "wifi-home",
-                "svce": "AirPort",
-                "agrp": "apple",
-                "cdat": _KEYCHAIN_DATE,
-                "mdat": _KEYCHAIN_DATE,
-                "v_Data": keychain_item_blob("hunter2"),
-            }
-        ],
-        "inet": [
-            {
-                "acct": "ada@example.com",
-                "srvr": "mail.example.com",
-                "agrp": "com.apple.mail",
-                "v_Data": keychain_item_blob("s3cr3t", protection_class=11),
-            }
-        ],
-        "cert": [],
-        "keys": [],
-    }
-    path.write_bytes(plistlib.dumps(plist, fmt=plistlib.FMT_BINARY))
-
-
 def _address_book(path: Path) -> None:
     _script(
         path,
@@ -448,7 +374,13 @@ _SOURCES = (
         "Library/CoreDuet/Knowledge/knowledgeC.db",
         _knowledge_c,
     ),
-    _SourceDb("KeychainDomain", "keychain-backup.plist", _keychain),
+    # The image blob behind photo row 1 (row 2's asset is deliberately absent,
+    # standing in for an iCloud-only photo whose data is not in the backup).
+    _SourceDb(
+        "CameraRollDomain",
+        "Media/DCIM/100APPLE/IMG_0001.HEIC",
+        lambda path: path.write_bytes(PNG_1PX),
+    ),
     _SourceDb("HomeDomain", "Library/Safari/History.db", _safari_history),
     _SourceDb("HomeDomain", "Library/Safari/Bookmarks.db", _safari_bookmarks),
     _SourceDb(
@@ -586,7 +518,6 @@ class FakeEncryptedBackup:
     def __init__(self, *, backup_directory: str, passphrase: str) -> None:
         self._root = Path(backup_directory)
         self._passphrase = passphrase
-        self._keybag = _FakeKeybag()
 
     def test_decryption(self) -> bool:
         if self._passphrase != self.PASSWORD:
