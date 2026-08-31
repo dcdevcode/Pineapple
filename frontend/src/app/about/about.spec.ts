@@ -32,6 +32,15 @@ describe('About', () => {
     expect(license).toContain('MIT License');
   });
 
+  it('shows the legal notice with its key points', async () => {
+    const el = await render();
+    const legal = el.querySelector('.about__legal')?.textContent ?? '';
+    expect(el.querySelectorAll('.about__legal-list li')).toHaveLength(4);
+    expect(legal).toContain('authorized forensic examination');
+    expect(legal).toContain('without warranty of any kind');
+    expect(legal).toContain('Apple Inc.');
+  });
+
   it('credits the four core projects, each as an outbound link', async () => {
     const el = await render();
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.about__credit-name a'));

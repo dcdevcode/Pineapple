@@ -55,6 +55,20 @@
   color: var(--app-text-muted);
 }
 
+.about__legal {
+  margin-top: 28px;
+}
+
+.about__legal-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font: var(--mat-sys-body-small);
+  color: var(--app-text-muted);
+}
+
 .about__section-title {
   margin: 0 0 8px;
   font: var(--mat-sys-title-medium);
