@@ -1,8 +1,9 @@
 # Architecture
 
 How Pineapple works, end to end, and *why* it is built this way. Read this
-before making a non-trivial change. Companion docs: `UI.md` (the design
-system), `CLAUDE.md` (conventions).
+before making a non-trivial change. Companion docs: `README.md` (the public
+overview), `AGENTS.md` (agent orientation + documentation map), `UI.md` (the
+design system), `CLAUDE.md` (conventions).
 
 Pineapple is an **iOS forensic analysis tool**: a desktop app that inspects an
 Apple device over USB and analyses its backups offline. Two guiding

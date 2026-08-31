@@ -38,6 +38,8 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 
 | Path | Purpose |
 | --- | --- |
+| `README.md` | The public overview: what the tool does, how the analysis works, requirements, setup, commands, disclaimer. |
+| `AGENTS.md` | Orientation for AI coding agents and a map of every documentation file. |
 | `ARCHITECTURE.md` | The deep "why of everything": execution model, data formats, per-library usage. |
 | `UI.md` | The UI design system in full. |
 | `backend/pyproject.toml` | uv project: deps, `pineapple` and `pineapple-gui` entry points. |

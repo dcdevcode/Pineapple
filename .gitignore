@@ -16,3 +16,6 @@ frontend/.angular/
 
 # macOS
 .DS_Store
+
+# Local release-prep checklist (never committed)
+final_verification.md
