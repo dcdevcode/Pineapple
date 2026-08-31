@@ -28,6 +28,12 @@ const COUNT_LABELS: Record<string, string> = {
   messages: 'Messages',
   calls: 'Calls',
   contacts: 'Contacts',
+  photos: 'Photos',
+  calendar_events: 'Calendar events',
+  voicemail: 'Voicemail',
+  device_usage: 'Usage events',
+  accounts: 'Accounts',
+  keychain: 'Keychain items',
 };
 
 /** The case Overview: device facts, the parse report, and the source archive. */
