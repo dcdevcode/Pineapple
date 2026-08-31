@@ -248,6 +248,20 @@ export interface AccountRow {
   credential_type: string | null;
 }
 
+export interface KeychainRow {
+  rowid: number;
+  item_class: string | null;
+  account: string | null;
+  service: string | null;
+  server: string | null;
+  access_group: string | null;
+  protection_class: number | null;
+  created_utc: string | null;
+  modified_utc: string | null;
+  secret: string | null;
+  secret_error: string | null;
+}
+
 export interface DomainCount {
   domain: string;
   count: number;

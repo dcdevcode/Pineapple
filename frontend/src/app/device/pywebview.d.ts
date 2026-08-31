@@ -14,6 +14,7 @@ import type {
   ExtractResult,
   FilePreview,
   FileRow,
+  KeychainRow,
   MessageRow,
   NoteRow,
   OpenCaseResult,
@@ -131,6 +132,11 @@ export interface PineappleApi {
     limit: number,
     offset: number,
   ): Promise<QueryResult<Page<AccountRow>>>;
+  analysis_keychain(
+    search: string | null,
+    limit: number,
+    offset: number,
+  ): Promise<QueryResult<Page<KeychainRow>>>;
   analysis_preview_file(fileId: string): Promise<QueryResult<FilePreview>>;
   analysis_extract_file(fileId: string): Promise<ExtractResult | { ok: false }>;
 }

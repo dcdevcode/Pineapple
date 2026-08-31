@@ -128,8 +128,11 @@ visible text label.
 ### Nav-rail (Analysis case browser)
 
 A fixed-width (`200px`) left rail of `mat-nav-list` **buttons** (not anchors —
-they switch state, not navigate), each showing a section label and, when
-known, a right-aligned muted count. Flat full-width rows — **no pill, no
+they switch state, not navigate), one per artifact kind (Overview, Apps,
+Files, Messages, Calls, Contacts, Notes, Photos, Calendar, Voicemail, Usage,
+Accounts, Keychain, Safari, WhatsApp), each showing a section label and, when
+known, a right-aligned muted count. The rail scrolls when the list outgrows
+the viewport. Flat full-width rows — **no pill, no
 border** (the `<button>` UA border is reset); the `[activated]` row keeps
 Material's `secondary-container` highlight but squared off
 (`--mat-list-active-indicator-shape: 0`). The rail keeps a `--app-border`
@@ -145,7 +148,7 @@ The generic table for every artifact list (`analysis/artifact-table.ts`).
   the table and paginator backgrounds are transparent.
 - Owns its fetch loop: give it `columns`, a `fetchPage` function, and
   optionally `scope` (bump to refetch), `searchable`, `detailFields` /
-  `detailTitle`, and (Files only) `resolvePreview` / `onExtract`.
+  `detailTitle`, `resolvePreview` (Files, Photos) and `onExtract` (Files).
 - Toolbar row (searchable tables only): a projected `[tableFilter]` control
   sits left of a 260 px Search field; both wrap together on a narrow window.
 - Cells truncate with an ellipsis (`max-width`); numeric columns right-align.
