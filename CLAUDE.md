@@ -201,6 +201,10 @@ buttons, emoji, purple, glassmorphism).
   **only in RAM**. `CaseHandle.preview_file` returns a size-capped
   (`PREVIEW_MAX_BYTES` = 5 MB) classified view (`image` / `plist` / `text` /
   `binary` / `unavailable`); `extract_file(id, dest)` writes one file out.
+  Read queries open a fresh SQLite connection each (pool-thread safe), but the
+  `BackupReader` is long-lived and `iphone_backup_decrypt` pins a SQLite handle
+  to its creating thread — so every reader touch runs through a private
+  `max_workers=1` executor to stay on one thread.
 - `api.py` analysis bridge: `choose_pineapple_file` / `choose_case_folder`
   (native dialogs), `analysis_peek` (a `.pineapple`) / `analysis_peek_case` (an
   existing case folder — reads only the `<title>.json` descriptor, for the

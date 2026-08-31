@@ -115,6 +115,42 @@ def test_queries_work_from_another_thread(case_dir: Path) -> None:
     assert results == [3, 3]
 
 
+def test_backup_reader_work_is_confined_to_one_thread(
+    case_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: the backup reader (and, for an encrypted case, the SQLite
+    connection `iphone_backup_decrypt` holds) must only ever be touched from
+    one thread, no matter which pywebview worker the bridge call landed on."""
+    from pineapple.analysis.reader import PlainBackupReader
+
+    seen: list[int] = []
+    real_read_bytes = PlainBackupReader.read_bytes
+
+    def spy(self: PlainBackupReader, *args: object, **kwargs: object) -> object:
+        seen.append(threading.get_ident())
+        return real_read_bytes(self, *args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(PlainBackupReader, "read_bytes", spy)
+
+    handle = load_case(case_dir)
+    sms_id = file_id("HomeDomain", "Library/SMS/sms.db")
+    try:
+        workers = [
+            threading.Thread(target=lambda: handle.preview_file(sms_id))
+            for _ in range(4)
+        ]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join()
+    finally:
+        handle.close()
+
+    assert len(seen) == 4
+    assert len(set(seen)) == 1  # all four ran on the same reader thread
+    assert seen[0] != threading.get_ident()  # and not the caller's
+
+
 def test_load_case_rejects_a_plain_folder(tmp_path: Path) -> None:
     with pytest.raises(AnalysisError):
         load_case(tmp_path)

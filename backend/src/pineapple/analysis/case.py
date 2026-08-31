@@ -17,9 +17,11 @@ import base64
 import datetime as dt
 import plistlib
 import sqlite3
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from pineapple.analysis.descriptor import (
     CaseDescriptor,
@@ -33,6 +35,8 @@ from pineapple.analysis.reader import (
     PlainBackupReader,
 )
 from pineapple.analysis.schema import SCHEMA_VERSION
+
+_T = TypeVar("_T")
 
 ANALYSIS_DB = "analysis.db"
 DEFAULT_PAGE = 200
@@ -148,6 +152,13 @@ class CaseHandle:
         self._is_encrypted = is_encrypted
         self._password = password
         self._reader: BackupReader | None = None
+        # The backup reader -- and the SQLite connections it (and
+        # `iphone_backup_decrypt`) hold -- must stay on one thread, but pywebview
+        # answers bridge calls on a pool of workers. Every reader touch is routed
+        # through this single-worker executor so it always runs on that thread.
+        self._reader_pool = ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="pineapple-case-reader"
+        )
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(f"file:{self._database}?mode=ro", uri=True)
@@ -484,18 +495,22 @@ class CaseHandle:
         if not self._is_encrypted:
             return True
         try:
-            self._backup_reader()
+            self._on_reader_thread(self._backup_reader)
         except AnalysisError:
             return False
         return True
 
     def set_password(self, password: str) -> None:
         """Supply (or replace) the decryption key for an encrypted backup."""
-        if self._reader is not None:
-            self._reader.close()
-            self._reader = None
-        self._password = password
-        self._backup_reader()  # validate now; raises AnalysisError on a bad key
+
+        def swap() -> None:
+            if self._reader is not None:
+                self._reader.close()
+                self._reader = None
+            self._password = password
+            self._backup_reader()  # validate now; raises AnalysisError on a bad key
+
+        self._on_reader_thread(swap)
 
     def file_name(self, file_id: str) -> str:
         """The basename of one backup file (raises if the id is unknown)."""
@@ -506,8 +521,10 @@ class CaseHandle:
         row = self._file_row(file_id)
         if row["is_dir"] or row["target"]:
             raise AnalysisError("Only regular files can be extracted.")
-        out = self._backup_reader().extract_file(
-            file_id, row["relative_path"], row["domain"], dest
+        out = self._on_reader_thread(
+            lambda: self._backup_reader().extract_file(
+                file_id, row["relative_path"], row["domain"], dest
+            )
         )
         if out is None:
             raise AnalysisError("The backup does not contain this file's data.")
@@ -526,8 +543,10 @@ class CaseHandle:
                 "name": name,
                 "target": row["target"],
             }
-        data = self._backup_reader().read_bytes(
-            file_id, row["relative_path"], row["domain"], PREVIEW_MAX_BYTES + 1
+        data = self._on_reader_thread(
+            lambda: self._backup_reader().read_bytes(
+                file_id, row["relative_path"], row["domain"], PREVIEW_MAX_BYTES + 1
+            )
         )
         if data is None:
             return {"kind": "unavailable", "reason": "not-in-backup", "name": name}
@@ -538,11 +557,16 @@ class CaseHandle:
         return result
 
     def close(self) -> None:
-        if self._reader is not None:
-            self._reader.close()
-            self._reader = None
+        reader, self._reader = self._reader, None
+        if reader is not None:
+            self._on_reader_thread(reader.close)
+        self._reader_pool.shutdown(wait=True)
 
     # -- internals ------------------------------------------------------
+
+    def _on_reader_thread(self, fn: Callable[[], _T]) -> _T:
+        """Run ``fn`` on the one thread the backup reader is confined to."""
+        return self._reader_pool.submit(fn).result()
 
     def _backup_reader(self) -> BackupReader:
         if self._reader is None:

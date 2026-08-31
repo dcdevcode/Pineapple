@@ -347,6 +347,13 @@ Everything a case needs is in one folder the user picks:
   `load_case` / `set_password` and **held only in RAM**. The `Api` keeps that
   key across `start_analysis` / `open_case` so a just-finished encrypted case
   can read its own files without prompting again.
+  Unlike the per-query connections, the `BackupReader` is **long-lived** (the
+  decryption keybag is expensive to re-derive) and `iphone_backup_decrypt`
+  holds its own SQLite handle to the decrypted `Manifest.db`. So every reader
+  touch — `preview_file`, `extract_file`, `set_password`, `files_unlocked` — is
+  funnelled through a private `max_workers=1` executor, keeping the reader and
+  its connection on one thread regardless of which pool worker the bridge call
+  arrived on.
 
 ---
 
