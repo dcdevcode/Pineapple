@@ -2,7 +2,6 @@
 name = "pineapple"
 version = "0.1.0"
 description = "iOS forensic analysis tool - backend"
-readme = "README.md"
 authors = [
     { name = "dcdevcode", email = "305354676+dcdevcode@users.noreply.github.com" }
 ]
