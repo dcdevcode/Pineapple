@@ -253,7 +253,6 @@ patterns — see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 | `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: archive, reader (plain / encrypted), the indexer, `parsers/`, the run pipeline, and the case folder. |
 | `backend/src/pineapple/api.py` | `Api`: the synchronous bridge bound to `window.pywebview.api`. |
 | `backend/src/pineapple/app.py` | The pywebview host window (`pineapple-gui`). |
-| `backend/src/pineapple/cli.py` | `pineapple`: print connected devices + info. |
 | `backend/tests/` | `pytest`; no hardware — the `pymobiledevice3` / `webview` / `iphone_backup_decrypt` boundaries are faked. |
 | `frontend/` | Angular + Angular Material, **`pnpm` only**. Rendered inside the pywebview window. |
 | `frontend/src/app/` | The shell + the `device` / `syslog` / `backup` / `analysis` / `about` / `brand` feature areas. |
@@ -287,9 +286,6 @@ cd frontend && pnpm install
 cd frontend && pnpm run build
 cd backend  && uv run pineapple-gui
 ```
-
-`uv run pineapple` prints the connected devices and their info without opening
-the window.
 
 ## Development loop
 

@@ -49,7 +49,6 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 | `backend/src/pineapple/backup.py` | `DeviceBackup`: a full MobileBackup2 acquisition packaged as one uncompressed `.pineapple` zip; runs on `session`, progress polled by the frontend. |
 | `backend/src/pineapple/analysis/` | Offline `.pineapple` parsing: `archive` (peek/extract the zip), `metadata` (the three plists), `mbfile` (decode a `Manifest.db` `Files.file` blob), `reader` (uniform access + single-file extract/read, encrypted via `iphone_backup_decrypt`), `schema` (v4), `errors`, `parsers/` (messages incl. `attributed_body` recovery / calls / contacts / notes / photos / calendar / voicemail / accounts / device usage / safari / whatsapp / file index → `analysis.db`; `_common.read_source` wraps the DB open), `runner` (`AnalysisRun`, runs on `session`), `descriptor` + `case` (the `<title>.json` case folder, its read queries, and on-demand file preview/extract). |
 | `backend/src/pineapple/api.py` | `Api`: the sync bridge over `devices` / `syslog` / `backup` / `analysis`, bound to `window.pywebview.api`. |
-| `backend/src/pineapple/cli.py` | `pineapple` console script: print the connected devices and their info. |
 | `backend/src/pineapple/app.py` | pywebview host window; wires `js_api=Api()`. No device logic of its own. |
 | `backend/tests/` | `pytest` suite; the `pymobiledevice3` / `webview` boundary is faked (`support.py`), no hardware needed. `analysis_support.py` builds a tiny real on-disk backup + `.pineapple` (sms / calls / contacts / notes / safari / whatsapp source DBs, a real `attributedBody` sample) and fakes `iphone_backup_decrypt`. |
 | `frontend/src/app/app.*` | Shell: an app header (grey strip, hairline under) whose row is a `mat-tab-group` — the `Brand` lockup left, then the **Device** / **Analysis** / **About** tabs (Material Symbols icon over label, amber active underline); starts device polling. |
@@ -69,7 +68,6 @@ patterns, see `UI.md`; the "UI / design system" section below is the summary.
 # Backend
 cd backend
 uv sync
-uv run pineapple                           # print connected devices + info
 uv run pineapple-gui                        # desktop window, serves frontend/dist
 uv run pineapple-gui --dev                  # desktop window against the Angular dev server
 uv run ruff check . && uv run ruff format --check .
